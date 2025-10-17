@@ -107,22 +107,33 @@ export default function Home() {
   }
 
   return (
-    <main className="p-6">
-      <div className="max-w-3xl mx-auto grid grid-cols-2 gap-6 items-start">
-        <div>
-          <h1 className="text-3xl font-bold mb-4">
-            Chào mừng đến với Agent TODO
+    <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-6">
+      <div className="max-w-5xl w-full grid md:grid-cols-2 gap-8 items-center">
+        {/* LEFT SIDE */}
+        <div className="text-center md:text-left space-y-4">
+          <h1 className="text-4xl font-bold text-indigo-700">
+            Chào mừng đến với <span className="text-blue-600">Agent TODO</span>
           </h1>
-          <p className="mb-4">Quản lý công việc đơn giản và hiệu quả.</p>
-          <div className="space-x-2">
+          <p className="text-gray-600 text-lg">
+            Quản lý công việc của bạn một cách đơn giản và hiệu quả.
+          </p>
+          <div className="space-x-3">
             <button
-              className="px-4 py-2 bg-blue-600 text-white rounded"
+              className={`px-5 py-2.5 rounded-lg font-medium shadow transition ${
+                !isRegister
+                  ? "bg-blue-600 text-white hover:bg-blue-700"
+                  : "bg-white text-blue-600 border border-blue-600 hover:bg-blue-50"
+              }`}
               onClick={() => setIsRegister(false)}
             >
               Đăng nhập
             </button>
             <button
-              className="px-4 py-2 bg-green-600 text-white rounded"
+              className={`px-5 py-2.5 rounded-lg font-medium shadow transition ${
+                isRegister
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : "bg-white text-green-600 border border-green-600 hover:bg-green-50"
+              }`}
               onClick={() => setIsRegister(true)}
             >
               Đăng ký
@@ -130,92 +141,103 @@ export default function Home() {
           </div>
         </div>
 
-        <div>
+        {/* RIGHT SIDE */}
+        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
           {!isRegister ? (
-            <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
-              <h2 className="text-xl font-semibold mb-4">Đăng nhập</h2>
-              <form onSubmit={handleLogin} className="space-y-4">
+            <>
+              <h2 className="text-2xl font-semibold text-center text-blue-700 mb-6">
+                Đăng nhập tài khoản
+              </h2>
+              <form onSubmit={handleLogin} className="space-y-5">
                 <div>
-                  <label className="block text-sm">Email</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Email
+                  </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm">Mật khẩu</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Mật khẩu
+                  </label>
                   <input
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 outline-none"
                   />
                 </div>
                 {error && <div className="text-sm text-red-600">{error}</div>}
-                <div>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 text-white rounded"
-                  >
-                    {loading ? "Đang..." : "Đăng nhập"}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 transition font-medium"
+                >
+                  {loading ? "Đang đăng nhập..." : "Đăng nhập"}
+                </button>
               </form>
-            </div>
+            </>
           ) : (
-            <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
-              <h2 className="text-xl font-semibold mb-4">Tạo tài khoản</h2>
-              <form onSubmit={handleRegister} className="space-y-4">
+            <>
+              <h2 className="text-2xl font-semibold text-center text-green-700 mb-6">
+                Tạo tài khoản mới
+              </h2>
+              <form onSubmit={handleRegister} className="space-y-5">
                 <div>
-                  <label className="block text-sm">Họ và tên</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Họ và tên
+                  </label>
                   <input
                     type="text"
                     value={rname}
                     onChange={(e) => setRName(e.target.value)}
                     required
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm">Email</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Email
+                  </label>
                   <input
                     type="email"
                     value={remail}
                     onChange={(e) => setREmail(e.target.value)}
                     required
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm">Mật khẩu</label>
+                  <label className="block text-sm font-medium text-gray-600 mb-1">
+                    Mật khẩu
+                  </label>
                   <input
                     type="password"
                     value={rpassword}
                     onChange={(e) => setRPassword(e.target.value)}
                     required
-                    className="w-full border rounded px-3 py-2"
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-400 focus:border-green-400 outline-none"
                   />
                 </div>
                 {rerror && <div className="text-sm text-red-600">{rerror}</div>}
                 {rsuccess && (
                   <div className="text-sm text-green-600">{rsuccess}</div>
                 )}
-                <div>
-                  <button
-                    type="submit"
-                    disabled={rloading}
-                    className="px-4 py-2 bg-green-600 text-white rounded"
-                  >
-                    {rloading ? "Đang..." : "Đăng ký"}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={rloading}
+                  className="w-full bg-green-600 text-white py-2.5 rounded-lg hover:bg-green-700 transition font-medium"
+                >
+                  {rloading ? "Đang đăng ký..." : "Đăng ký"}
+                </button>
               </form>
-            </div>
+            </>
           )}
         </div>
       </div>
