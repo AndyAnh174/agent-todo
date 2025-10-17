@@ -25,9 +25,13 @@ export default function MyDay() {
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
-        const res = await fetch(`/api/v1/todos?limit=50`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/todos?limit=50`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
+          }
+        );
         if (!res.ok) return;
         const data = await res.json();
         console.log("MyDay: loaded todos", data);

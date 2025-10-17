@@ -46,74 +46,51 @@ export default function TaskInput() {
             e.preventDefault();
             const title = inputRef.current?.value?.trim();
             if (!title) return;
+
             const token = localStorage.getItem("token");
             if (!token) {
               alert("Please log in to add a task.");
               return;
             }
+
+            // URL backend - luôn đọc từ .env để dễ deploy
+            const backend =
+              process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
             try {
               console.log("TaskInput: creating todo", title);
+
               (inputRef.current as HTMLInputElement).disabled = true;
-              let res: Response | null = null;
-              try {
-                res = await fetch("/api/v1/todos", {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ title }),
-                });
-              } catch (err) {
-                console.warn("TaskInput: relative fetch failed", err);
-              }
 
-              if (!res) {
-                // fallback to explicit backend host
-                try {
-                  const backend =
-                    (window as any).__BACKEND_URL__ || "http://localhost:8000";
-                  console.log(
-                    "TaskInput: trying fallback backend",
-                    backend + "/api/v1/todos"
-                  );
-                  res = await fetch(backend + "/api/v1/todos", {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                      Authorization: `Bearer ${token}`,
-                    },
-                    body: JSON.stringify({ title }),
-                  });
-                } catch (err) {
-                  console.error("TaskInput: fallback fetch failed", err);
-                }
-              }
-
-              if (!res) {
-                alert(
-                  "Failed to reach backend to create todo. Check console for details."
-                );
-                return;
-              }
+              const res = await fetch(`${backend}/api/v1/todos`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ title }),
+              });
 
               if (!res.ok) {
                 const err = await res.json().catch(() => ({}));
                 console.error("TaskInput: create todo failed", err);
-                alert(err.detail || "Failed to create todo");
+                alert(err.message || "Failed to create todo");
                 return;
               }
 
               const created = await res.json();
               console.log("TaskInput: created todo", created);
-              // clear and close
+
               if (inputRef.current) inputRef.current.value = "";
               setOpen(false);
-              // emit a CustomEvent so parent pages/components can listen and refresh if needed
-              try {
-                const ev = new CustomEvent("todo:created", { detail: created });
-                window.dispatchEvent(ev);
-              } catch (e) {}
+
+              // Gửi sự kiện để component khác cập nhật
+              window.dispatchEvent(
+                new CustomEvent("todo:created", { detail: created })
+              );
+            } catch (err) {
+              console.error("TaskInput: network error", err);
+              alert("Cannot connect to backend.");
             } finally {
               if (inputRef.current)
                 (inputRef.current as HTMLInputElement).disabled = false;
