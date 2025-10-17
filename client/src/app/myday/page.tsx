@@ -2,7 +2,7 @@
 
 import Sidebar from "@/components/Sidebar";
 import TaskInput from "@/components/TaskInput";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 
 export default function MyDay() {
   const today = useMemo(() => {
@@ -17,6 +17,39 @@ export default function MyDay() {
       return "";
     }
   }, []);
+  const [todos, setTodos] = useState<Array<any>>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/v1/todos?limit=50`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        console.log("MyDay: loaded todos", data);
+        if (mounted) setTodos(data);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    load();
+
+    function onCreated(e: any) {
+      const created = e?.detail;
+      console.log("MyDay: todo:created event", created);
+      if (created) setTodos((t) => [created, ...t]);
+    }
+    window.addEventListener("todo:created", onCreated as EventListener);
+    return () => {
+      mounted = false;
+      window.removeEventListener("todo:created", onCreated as EventListener);
+    };
+  }, []);
+
   return (
     <div className="flex">
       <Sidebar />
@@ -28,6 +61,27 @@ export default function MyDay() {
               <h1 className="text-2xl font-semibold">My Day</h1>
               <p className="mt-2 text-[12px]">{today}</p>
             </div>
+            {todos.length > 0 && (
+              <div className="p-8 md:p-12 max-w-4xl">
+                <div className="bg-white rounded-md shadow-sm p-3">
+                  {todos.map((todo: any) => (
+                    <div
+                      key={todo.id}
+                      className="flex items-center justify-between py-2"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-6 h-6 border rounded-full mt-1" />
+                        <div>
+                          <div className="font-medium">{todo.title}</div>
+                          <div className="text-xs text-gray-500">Tasks</div>
+                        </div>
+                      </div>
+                      <div className="text-gray-400">★</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* input bar below hero, overlapping slightly */}
