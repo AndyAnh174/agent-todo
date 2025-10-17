@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  // Disable trailing slash redirects for API routes
+  trailingSlash: false,
 };
 
 export default nextConfig;

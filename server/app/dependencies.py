@@ -11,19 +11,22 @@ def db_session(dep: Session = Depends(get_db)) -> Session:
     return dep
 
 
-security_bearer = HTTPBearer(auto_error=True)
+security_bearer = HTTPBearer(auto_error=False)
 
 
 def get_current_user(
     db: Session = Depends(db_session),
     credentials: HTTPAuthorizationCredentials = Depends(security_bearer),
 ) -> User:
+    if not credentials:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing authorization header")
+    
     try:
         payload = decode_token(credentials.credentials)
         user_id = payload.get("sub")
         if not user_id:
             raise ValueError("invalid sub")
-    except Exception:
+    except Exception as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
     user = db.query(User).get(user_id)
