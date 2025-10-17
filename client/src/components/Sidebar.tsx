@@ -124,7 +124,7 @@ export default function Sidebar() {
       <div className="border-1 border-gray-200 my-5"></div>
 
       <div className="mt-auto">
-        <button className="w-full flex items-center gap-3 px-3 py-3 text-sm text-gray-800 hover:bg-gray-100 rounded">
+        <button className="w-full flex items-center gap-3 px-3 py-3 text-sm bg-gray-200 text-gray-800 hover:bg-gray-300 rounded">
           <PlusIcon className="w-5 h-5 text-gray-800" />
           <span>New list</span>
         </button>

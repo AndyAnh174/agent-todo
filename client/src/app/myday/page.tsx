@@ -60,11 +60,11 @@ export default function MyDay() {
       <div className="flex-1 min-h-screen">
         <section className="relative w-full">
           {/* large gradient hero */}
-          <div className="w-full min-h-screen bg-gradient-to-b from-gray-500 to-yellow-200 text-white relative">
+          <div className="w-full min-h-screen bg-gradient-to-b from-gray-500 to-yellow-200 text-black relative">
             <div className="px-4 md:px-8">
               <div className="p-4 max-w-4xl mx-auto">
-                <h1 className="text-3xl font-semibold">My Day</h1>
-                <p className="mt-2 text-[16px]">{today}</p>
+                <h1 className="text-3xl font-semibold text-white">My Day</h1>
+                <p className="mt-2 text-[16px] text-white">{today}</p>
               </div>
             </div>
 
@@ -75,10 +75,10 @@ export default function MyDay() {
                     {todos.map((todo: any) => (
                       <div
                         key={todo.id}
-                        className="bg-white rounded-md shadow-sm p-4 flex items-center justify-between"
+                        className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between"
                       >
                         <div className="flex items-start gap-3">
-                          <div className="w-6 h-6 border rounded-full mt-1" />
+                          <div className="w-5 h-5 border rounded-full mt-1" />
                           <div>
                             <div className="font-medium text-black">
                               {todo.title}
