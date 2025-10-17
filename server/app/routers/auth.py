@@ -32,6 +32,6 @@ def login(payload: LoginRequest, db: Session = Depends(db_session)) -> TokenResp
     if not user or not user.password or not verify_password(payload.password, user.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = create_access_token(subject=user.id)
-    return TokenResponse(access_token=token)
+    return TokenResponse(access_token=token,user_id=user.id)
 
 

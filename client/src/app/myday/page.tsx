@@ -61,28 +61,35 @@ export default function MyDay() {
         <section className="relative w-full">
           {/* large gradient hero */}
           <div className="w-full min-h-screen bg-gradient-to-b from-teal-700 to-teal-400 text-white relative">
-            <div className="p-8 md:p-12 max-w-4xl">
-              <h1 className="text-2xl font-semibold">My Day</h1>
-              <p className="mt-2 text-[12px]">{today}</p>
+            <div className="px-4 md:px-8">
+              <div className="p-4 max-w-4xl mx-auto">
+                <h1 className="text-2xl font-semibold">My Day</h1>
+                <p className="mt-2 text-[12px]">{today}</p>
+              </div>
             </div>
+
             {todos.length > 0 && (
-              <div className="p-8 md:p-12 max-w-4xl">
-                <div className="bg-white rounded-md shadow-sm p-3">
-                  {todos.map((todo: any) => (
-                    <div
-                      key={todo.id}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 border rounded-full mt-1" />
-                        <div>
-                          <div className="font-medium">{todo.title}</div>
-                          <div className="text-xs text-gray-500">Tasks</div>
+              <div className="px-4">
+                <div className="p-4 max-w-4xl mx-auto">
+                  <div className="space-y-2">
+                    {todos.map((todo: any) => (
+                      <div
+                        key={todo.id}
+                        className="bg-white rounded-md shadow-sm p-4 flex items-center justify-between"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 border rounded-full mt-1" />
+                          <div>
+                            <div className="font-medium text-black">
+                              {todo.title}
+                            </div>
+                            <div className="text-xs text-gray-500">Tasks</div>
+                          </div>
                         </div>
+                        <div className="text-gray-400">★</div>
                       </div>
-                      <div className="text-gray-400">★</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
@@ -90,7 +97,7 @@ export default function MyDay() {
 
           {/* input bar below hero, overlapping slightly */}
           <div className="-mt-24 px-4 md:px-8 z-10">
-            <div className="max-w-4xl mx-auto">
+            <div className="p-4 max-w-4xl mx-auto">
               <TaskInput />
             </div>
           </div>
