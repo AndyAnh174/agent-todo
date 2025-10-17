@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const [user, setUser] = useState<{
@@ -17,19 +18,43 @@ export default function Sidebar() {
     }
   }, []);
 
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    } catch (e) {}
+    // redirect to login page
+    window.location.href = "/";
+  };
+
+  const displayName =
+    user?.full_name || (user?.email ? user.email.split("@")[0] : "");
+  const avatarInitial = displayName ? displayName.charAt(0).toUpperCase() : "?";
+
   return (
     <aside className="w-64 bg-white border-r min-h-screen p-4">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center text-white font-bold">
-          {user?.full_name ? user.full_name.charAt(0).toUpperCase() : "GU"}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center text-white font-bold">
+            {avatarInitial}
+          </div>
+          <div>
+            <div className="text-sm font-semibold">{displayName}</div>
+            <div className="text-xs text-gray-500">{user?.email || ""}</div>
+          </div>
         </div>
         <div>
-          <div className="text-sm font-semibold">
-            {user?.full_name || "giau vo"}
-          </div>
-          <div className="text-xs text-gray-500">
-            {user?.email || "minhgiauvo13@gmail.com"}
-          </div>
+          <button
+            onClick={handleLogout}
+            title="Đăng xuất"
+            aria-label="logout"
+            className="p-2 rounded hover:bg-gray-100"
+          >
+            <ArrowRightOnRectangleIcon
+              className="h-5 w-5 text-gray-600"
+              aria-hidden="true"
+            />
+          </button>
         </div>
       </div>
 
@@ -48,13 +73,13 @@ export default function Sidebar() {
           My Day
         </Link>
         <Link
-          href="important"
+          href="/important"
           className="block px-2 py-2 rounded hover:bg-gray-50"
         >
           Important
         </Link>
         <Link
-          href="planned"
+          href="/planned"
           className="block px-2 py-2 rounded hover:bg-gray-50"
         >
           Planned

@@ -53,7 +53,7 @@ export default function LoginPage() {
         } catch (e) {}
       }
       // redirect to tasks page after successful login
-      window.location.href = "/tasks";
+      window.location.href = "/myday";
     } catch (err: any) {
       // network errors (CORS, server down) show as TypeError in fetch
       if (err instanceof TypeError) {
