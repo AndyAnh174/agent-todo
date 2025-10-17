@@ -14,8 +14,9 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-# Entrypoint will run alembic upgrade then start uvicorn
-RUN chmod +x server/scripts/entrypoint.sh
+# Normalize line endings for entrypoint (Windows CRLF -> Unix LF) and make executable
+RUN sed -i 's/\r$//' server/scripts/entrypoint.sh \
+    && chmod +x server/scripts/entrypoint.sh
 
 EXPOSE 8000
 
