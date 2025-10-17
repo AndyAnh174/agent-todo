@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -18,21 +19,18 @@ export default function Sidebar() {
     }
   }, []);
 
-  const handleLogout = () => {
-    try {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-    } catch (e) {}
-    // redirect to login page
-    window.location.href = "/";
-  };
-
   const displayName =
     user?.full_name || (user?.email ? user.email.split("@")[0] : "");
   const avatarInitial = displayName ? displayName.charAt(0).toUpperCase() : "?";
+  const pathname = usePathname();
+  const isActive = (p: string) => {
+    if (!pathname) return false;
+    if (p === "/") return pathname === "/";
+    return pathname === p || pathname.startsWith(p + "/");
+  };
 
   return (
-    <aside className="w-64 bg-white border-r min-h-screen p-4">
+    <aside className="w-64 bg-white min-h-screen p-4">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center text-white font-bold">
@@ -44,17 +42,23 @@ export default function Sidebar() {
           </div>
         </div>
         <div>
-          <button
-            onClick={handleLogout}
+          <Link
+            href="/"
             title="Đăng xuất"
             aria-label="logout"
-            className="p-2 rounded hover:bg-gray-100"
+            className="p-2 rounded hover:bg-gray-100 inline-flex"
+            onClick={() => {
+              try {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+              } catch (e) {}
+            }}
           >
             <ArrowRightOnRectangleIcon
               className="h-5 w-5 text-gray-600"
               aria-hidden="true"
             />
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -68,23 +72,34 @@ export default function Sidebar() {
       <nav className="space-y-2 text-sm">
         <Link
           href="/myday"
-          className="block px-2 py-2 rounded hover:bg-gray-50"
+          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/myday") ? "bg-gray-200 font-semibold" : ""
+          }`}
         >
           My Day
         </Link>
         <Link
           href="/important"
-          className="block px-2 py-2 rounded hover:bg-gray-50"
+          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/important") ? "bg-gray-200 font-semibold" : ""
+          }`}
         >
           Important
         </Link>
         <Link
           href="/planned"
-          className="block px-2 py-2 rounded hover:bg-gray-50"
+          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/planned") ? "bg-gray-200 font-semibold" : ""
+          }`}
         >
           Planned
         </Link>
-        <Link href="/task" className="block px-2 py-2 rounded hover:bg-gray-50">
+        <Link
+          href="/task"
+          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/task") ? "bg-gray-200 font-semibold" : ""
+          }`}
+        >
           Tasks
         </Link>
       </nav>
