@@ -2,7 +2,14 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { ArrowRightOnRectangleIcon } from "@heroicons/react/24/outline";
+import {
+  SunIcon,
+  StarIcon,
+  CalendarIcon,
+  HomeIcon,
+  ArrowRightOnRectangleIcon,
+  MagnifyingGlassIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const [user, setUser] = useState<{
@@ -62,45 +69,54 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <div className="mb-4">
+      <div className="mb-4 relative">
         <input
-          className="w-full border rounded px-2 py-1"
+          className="w-full border rounded px-3 py-1"
           placeholder="Search"
+          aria-label="Search"
         />
+        <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
       </div>
 
       <nav className="space-y-2 text-sm">
         <Link
           href="/myday"
-          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
             isActive("/myday") ? "bg-gray-200 font-semibold" : ""
           }`}
         >
-          My Day
+          <SunIcon className="w-5 h-5 text-gray-600" />
+          <span>My Day</span>
         </Link>
+
         <Link
           href="/important"
-          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
             isActive("/important") ? "bg-gray-200 font-semibold" : ""
           }`}
         >
-          Important
+          <StarIcon className="w-5 h-5 text-pink-500" />
+          <span>Important</span>
         </Link>
+
         <Link
           href="/planned"
-          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
             isActive("/planned") ? "bg-gray-200 font-semibold" : ""
           }`}
         >
-          Planned
+          <CalendarIcon className="w-5 h-5 text-teal-600" />
+          <span>Planned</span>
         </Link>
+
         <Link
           href="/task"
-          className={`block px-2 py-2 rounded hover:bg-gray-200 ${
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
             isActive("/task") ? "bg-gray-200 font-semibold" : ""
           }`}
         >
-          Tasks
+          <HomeIcon className="w-5 h-5 text-sky-600" />
+          <span>Tasks</span>
         </Link>
       </nav>
 
