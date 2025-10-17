@@ -25,13 +25,13 @@ export default function MyDay() {
       const token = localStorage.getItem("token");
       if (!token) return;
       try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/v1/todos?limit=50`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            cache: "no-store",
-          }
-        );
+        // fallback: if NEXT_PUBLIC_API_URL is not set, use same origin (so /api/v1/...)
+        const base = process.env.NEXT_PUBLIC_API_URL || "";
+        const url = `${base}/api/v1/todos?limit=50`;
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
         if (!res.ok) return;
         const data = await res.json();
         console.log("MyDay: loaded todos", data);
@@ -60,11 +60,11 @@ export default function MyDay() {
       <div className="flex-1 min-h-screen">
         <section className="relative w-full">
           {/* large gradient hero */}
-          <div className="w-full min-h-screen bg-gradient-to-b from-teal-700 to-teal-400 text-white relative">
+          <div className="w-full min-h-screen bg-gradient-to-b from-gray-500 to-yellow-200 text-white relative">
             <div className="px-4 md:px-8">
               <div className="p-4 max-w-4xl mx-auto">
-                <h1 className="text-2xl font-semibold">My Day</h1>
-                <p className="mt-2 text-[12px]">{today}</p>
+                <h1 className="text-3xl font-semibold">My Day</h1>
+                <p className="mt-2 text-[16px]">{today}</p>
               </div>
             </div>
 

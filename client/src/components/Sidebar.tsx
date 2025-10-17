@@ -9,6 +9,7 @@ import {
   HomeIcon,
   ArrowRightOnRectangleIcon,
   MagnifyingGlassIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
@@ -37,7 +38,7 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white min-h-screen p-4">
+    <aside className="w-64 bg-white min-h-screen p-4 flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center text-white font-bold">
@@ -71,13 +72,13 @@ export default function Sidebar() {
 
       <div className="mb-4 relative">
         <input
-          className="w-full border rounded px-3 py-1"
+          className="w-full pr-12 rounded px-3 py-1 bg-gray-200 text-gray-700 placeholder-gray-500 focus:outline-none"
           placeholder="Search"
           aria-label="Search"
         />
-        <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
+        <MagnifyingGlassIcon className="w-8 h-6 hover:bg-gray-300 p-1 rounded-sm text-gray-600 absolute right-3 top-1/2 -translate-y-1/2" />
       </div>
-
+      <div className="border-1 border-gray-200 mb-5"></div>
       <nav className="space-y-2 text-sm">
         <Link
           href="/myday"
@@ -120,9 +121,12 @@ export default function Sidebar() {
         </Link>
       </nav>
 
-      <div className="mt-6">
-        <button className="w-full text-left px-2 py-2 border rounded">
-          + New list
+      <div className="border-1 border-gray-200 my-5"></div>
+
+      <div className="mt-auto">
+        <button className="w-full flex items-center gap-3 px-3 py-3 text-sm text-gray-800 hover:bg-gray-100 rounded">
+          <PlusIcon className="w-5 h-5 text-gray-800" />
+          <span>New list</span>
         </button>
       </div>
     </aside>

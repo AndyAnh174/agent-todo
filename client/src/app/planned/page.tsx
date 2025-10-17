@@ -1,5 +1,5 @@
 "use client";
-
+import { CalendarIcon } from "@heroicons/react/24/outline";
 import Sidebar from "@/components/Sidebar";
 import TaskInput from "@/components/TaskInput";
 import { useEffect, useState } from "react";
@@ -41,35 +41,43 @@ export default function Planned() {
       <Sidebar />
       <div className="flex-1 min-h-screen">
         <section className="relative w-full">
-          <div className="w-full min-h-screen bg-gradient-to-b from-teal-700 to-teal-400 text-white relative">
-            <div className="p-8 md:p-12 max-w-4xl">
-              <h1 className="text-2xl font-semibold">Planned</h1>
+          <div className="w-full min-h-screen bg-gradient-to-b from-teal-400 to-teal-100 text-black relative">
+            <div className="px-4 md:px-8">
+              <div className="p-4 max-w-4xl mx-auto flex items-center gap-3">
+                <CalendarIcon className="w-6 h-6 text-teal-700" />
+                <h1 className="text-2xl font-semibold text-teal-700">
+                  Planned
+                </h1>
+              </div>
             </div>
+
             {todos.length > 0 && (
-              <div className="p-8 md:p-12 max-w-4xl">
-                <div className="bg-white rounded-md shadow-sm p-3">
-                  {todos.map((todo: any) => (
-                    <div
-                      key={todo.id}
-                      className="flex items-center justify-between py-2"
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className="w-6 h-6 border rounded-full mt-1" />
-                        <div>
-                          <div className="font-medium">{todo.title}</div>
-                          <div className="text-xs text-gray-500">Tasks</div>
+              <div className="px-4">
+                <div className="p-4 max-w-4xl mx-auto">
+                  <div className="bg-white rounded-md shadow-sm p-3">
+                    {todos.map((todo: any) => (
+                      <div
+                        key={todo.id}
+                        className="flex items-center justify-between py-2"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 border rounded-full mt-1" />
+                          <div>
+                            <div className="font-medium">{todo.title}</div>
+                            <div className="text-xs text-gray-500">Tasks</div>
+                          </div>
                         </div>
+                        <div className="text-gray-400">★</div>
                       </div>
-                      <div className="text-gray-400">★</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
           </div>
 
           <div className="-mt-24 px-4 md:px-8 z-10">
-            <div className="max-w-4xl mx-auto">
+            <div className="p-4 max-w-4xl mx-auto">
               <TaskInput />
             </div>
           </div>
