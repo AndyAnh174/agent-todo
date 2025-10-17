@@ -21,12 +21,12 @@ export default function MyDay() {
     <div className="flex">
       <Sidebar />
       <div className="flex-1 min-h-screen">
-        <section className="relative w-full rounded-lg">
+        <section className="relative w-full">
           {/* large gradient hero */}
           <div className="w-full min-h-screen bg-gradient-to-b from-teal-700 to-teal-400 text-white relative">
             <div className="p-8 md:p-12 max-w-4xl">
-              <h1 className="text-4xl md:text-5xl font-semibold">My Day</h1>
-              <p className="mt-2 text-sm md:text-base">{today}</p>
+              <h1 className="text-2xl font-semibold">My Day</h1>
+              <p className="mt-2 text-[12px]">{today}</p>
             </div>
           </div>
 
