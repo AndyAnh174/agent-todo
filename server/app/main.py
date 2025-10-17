@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth as auth_router
 from .routers import todos as todos_router
 from .routers import groups as groups_router
