@@ -34,7 +34,11 @@ export default function LoginPage() {
           }
           return String(d);
         };
-        const msg = formatDetail(j?.detail) || formatDetail(j) || res.statusText || "Login failed";
+        const msg =
+          formatDetail(j?.detail) ||
+          formatDetail(j) ||
+          res.statusText ||
+          "Login failed";
         throw new Error(msg);
       }
       const data = await res.json();
@@ -42,8 +46,8 @@ export default function LoginPage() {
       if (data?.access_token) {
         localStorage.setItem("token", data.access_token);
       }
-      // redirect to home
-      window.location.href = "/";
+      // redirect to tasks page after successful login
+      window.location.href = "/tasks";
     } catch (err: any) {
       // network errors (CORS, server down) show as TypeError in fetch
       if (err instanceof TypeError) {
