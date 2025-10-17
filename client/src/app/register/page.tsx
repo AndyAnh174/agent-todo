@@ -15,23 +15,23 @@ export default function RegisterPage() {
     setError(null);
     setSuccess(null);
     try {
-        // simple client-side validation to avoid 422 from backend
-        if (!email || !email.includes("@")) {
-          setError("Vui lòng nhập email hợp lệ.");
-          setLoading(false);
-          return;
-        }
-        if (!password || password.length < 6) {
-          setError("Mật khẩu phải có tối thiểu 6 ký tự.");
-          setLoading(false);
-          return;
-        }
+      // simple client-side validation to avoid 422 from backend
+      if (!email || !email.includes("@")) {
+        setError("Vui lòng nhập email hợp lệ.");
+        setLoading(false);
+        return;
+      }
+      if (!password || password.length < 6) {
+        setError("Mật khẩu phải có tối thiểu 6 ký tự.");
+        setLoading(false);
+        return;
+      }
       // use relative path; Next.js rewrites /api to backend in dev/production config
       const res = await fetch(`/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-          // backend expects `full_name` field
-          body: JSON.stringify({ full_name: name, email, password }),
+        // backend expects `full_name` field
+        body: JSON.stringify({ full_name: name, email, password }),
       });
       if (!res.ok) {
         const j = await res.json().catch(() => null);
@@ -50,10 +50,28 @@ export default function RegisterPage() {
           }
           return String(d);
         };
-        const msg = formatDetail(j?.detail) || formatDetail(j) || res.statusText || "Register failed";
+        const msg =
+          formatDetail(j?.detail) ||
+          formatDetail(j) ||
+          res.statusText ||
+          "Register failed";
         throw new Error(msg);
       }
       setSuccess("Đăng ký thành công. Bạn có thể đăng nhập ngay.");
+      // store user info locally so Sidebar can show name/email without backend changes
+      const created = await res.json().catch(() => null);
+      try {
+        const existing = JSON.parse(localStorage.getItem("user") || "null");
+        const newUser = {
+          ...(existing || {}),
+          id: created?.id,
+          email: created?.email,
+          full_name: name,
+        };
+        localStorage.setItem("user", JSON.stringify(newUser));
+      } catch (e) {
+        // ignore
+      }
     } catch (err: any) {
       if (err instanceof TypeError) {
         setError("Network error hoặc CORS blocked request. Kiểm tra backend đang chạy và CORS hoặc cấu hình URL.");

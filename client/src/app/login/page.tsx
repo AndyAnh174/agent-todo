@@ -45,6 +45,12 @@ export default function LoginPage() {
       // store token (simple approach) — you may replace with secure storage
       if (data?.access_token) {
         localStorage.setItem("token", data.access_token);
+        // store at least email locally so Sidebar can show it
+        try {
+          const existing = JSON.parse(localStorage.getItem("user") || "null");
+          const newUser = { ...(existing || {}), email };
+          localStorage.setItem("user", JSON.stringify(newUser));
+        } catch (e) {}
       }
       // redirect to tasks page after successful login
       window.location.href = "/tasks";
