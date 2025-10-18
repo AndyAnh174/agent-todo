@@ -26,6 +26,10 @@ class User(Base):
         sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True
     )
 
-    # removed reverse relationship to simplify mapper configuration
+    # Relationships
+    todos = relationship("Todo", back_populates="user")
+    notifications = relationship("Notification", back_populates="user")
+    preferences = relationship("UserPreference", back_populates="user", uselist=False)
+    automation_rules = relationship("AutomationRule", back_populates="user")
 
 

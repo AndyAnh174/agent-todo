@@ -8,4 +8,7 @@ email-validator
 python-dotenv
 passlib[bcrypt]
 PyJWT
+celery[redis]
+redis
+aiosmtplib
 

@@ -35,8 +35,9 @@ class Todo(Base):
         sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True
     )
 
-    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id])
+    user: Mapped[Optional["User"]] = relationship("User", foreign_keys=[user_id], back_populates="todos")
     # relationships
     group: Mapped[Optional["Group"]] = relationship("Group")
+    notifications = relationship("Notification", back_populates="todo")
 
 
