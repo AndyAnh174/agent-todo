@@ -94,6 +94,59 @@ async def embed_single_todo(
     create_todo_embedding_task.delay(str(todo_id))
     return {"message": f"Embedding creation task for todo {todo_id} initiated."}
 
+@router.post("/todo/{todo_id}/embed-direct", status_code=status.HTTP_200_OK)
+async def embed_single_todo_direct(
+    todo_id: UUID,
+    db: Session = Depends(db_session),
+    user=Depends(get_current_user)
+):
+    """
+    Create embedding for a specific todo directly (synchronously).
+    """
+    todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
+    if not todo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Todo not found")
+    
+    try:
+        # Import services
+        from ..services.embedding_service import get_embedding_service
+        from ..services.vector_service import get_vector_service
+        
+        # Get services
+        embedding_service = get_embedding_service()
+        vector_service = get_vector_service()
+        
+        # Create content for embedding
+        content = f"{todo.title}"
+        if todo.description:
+            content += f" {todo.description}"
+        
+        # Generate embedding
+        embedding = embedding_service.encode_text(content)
+        
+        # Prepare metadata
+        metadata = {
+            "user_id": str(user.id),
+            "title": todo.title,
+            "description": todo.description or "",
+            "is_completed": todo.is_completed,
+            "is_important": todo.is_important,
+            "due_time": todo.due_time.isoformat() if todo.due_time else None,
+            "created_at": todo.created_at.isoformat() if todo.created_at else None
+        }
+        
+        # Add to vector database
+        result = vector_service.add_todo_embedding(str(todo_id), content, metadata)
+        
+        return {
+            "message": f"Embedding created successfully for todo {todo_id}",
+            "embedding_id": result,
+            "content": content
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error creating embedding: {str(e)}")
+
 @router.put("/todo/{todo_id}/embed", status_code=status.HTTP_202_ACCEPTED)
 async def update_single_todo_embedding(
     todo_id: UUID,

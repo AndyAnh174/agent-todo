@@ -51,7 +51,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: agent-todo-celery-worker-minimal
-    command: celery -A server.app.celery_app worker --loglevel=info
+    command: sh server/scripts/celery_worker.sh
     environment:
       - DATABASE_URL=postgresql+psycopg2://user:password@db:5432/agent_plan
       - REDIS_URL=redis://redis:6379/0

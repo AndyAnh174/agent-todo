@@ -41,7 +41,15 @@ class SmartLogicEngine:
             "email": ["email", "mail", "gửi", "gui", "send", "reply", "trả lời", "tra loi"],
             "review": ["review", "kiểm tra", "kiem tra", "check", "xem lại", "xem lai", "duyệt", "duyet", "approve"],
             "creative": ["thiết kế", "thiet ke", "design", "sáng tạo", "sang tao", "creative", "idea", "ý tưởng", "y tuong"],
-            "technical": ["code", "programming", "bug", "fix", "technical", "kỹ thuật", "ky thuat", "lập trình", "lap trinh"]
+            "technical": ["code", "programming", "bug", "fix", "technical", "kỹ thuật", "ky thuat", "lập trình", "lap trinh"],
+            # Thêm keywords mới
+            "work": ["làm", "lam", "work", "công việc", "cong viec", "job", "nghề", "nghe", "nghiệp", "nghiep"],
+            "office": ["công ty", "cong ty", "company", "văn phòng", "van phong", "office", "cơ quan", "co quan"],
+            "study": ["học", "hoc", "study", "bài tập", "bai tap", "assignment", "thi", "exam", "sách", "sach", "course", "khóa học", "khoa hoc"],
+            "tomorrow": ["ngày mai", "ngay mai", "tomorrow", "mai"],
+            "location": ["công ty", "cong ty", "company", "văn phòng", "van phong", "office", "nhà", "nha", "home", "trường", "truong", "school"],
+            "backend": ["backend", "api", "server", "database", "db", "lập trình", "lap trinh", "programming", "code"],
+            "report": ["báo cáo", "bao cao", "report", "báo", "bao", "thuật toán", "thuat toan", "algorithm", "DSA"]
         }
         
         # Priority indicators
