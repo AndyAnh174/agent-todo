@@ -333,7 +333,7 @@ export default function Important() {
             </div>
           </div>
 
-          <div className="-mt-24 px-4 md:px-8 z-10">
+          <div className="-mt-20 px-4 md:px-8 z-10">
             <div className="p-4 max-w-4xl mx-auto">
               <TaskInput />
             </div>
