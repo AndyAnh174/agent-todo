@@ -44,6 +44,7 @@ export default function TaskDetailSidebar({
   // due date picker state (declare early so hooks order is stable)
   const [showDuePicker, setShowDuePicker] = useState(false);
   const [duePickerDate, setDuePickerDate] = useState<string | null>(null);
+  const [duePickerTime, setDuePickerTime] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
@@ -62,7 +63,8 @@ export default function TaskDetailSidebar({
 
   if (!isOpen || !task) return null;
 
-  const handleSave = async () => {
+  // Save only the description field (used by the Save button under the note textarea)
+  const handleSaveDescription = async () => {
     if (!editedTask) return;
 
     try {
@@ -81,36 +83,26 @@ export default function TaskDetailSidebar({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          title: editedTask.title,
-          description: editedTask.description,
-          due_time: editedTask.due_time,
-          is_important: editedTask.is_important,
-          is_completed: editedTask.is_completed,
-        }),
+        body: JSON.stringify({ description: editedTask.description }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to update task");
+        alert(err.detail || "Failed to update description");
         return;
       }
 
-      const updatedTask = await res.json();
-      onUpdate(updatedTask);
+      const updated = await res.json();
+      setEditedTask(updated);
+      onUpdate(updated);
       setIsEditing(false);
       try {
         showToast("success!");
       } catch {}
     } catch (err) {
-      console.error("Error updating task:", err);
+      console.error("Error updating description:", err);
       alert("Cannot connect to backend.");
     }
-  };
-
-  const handleDelete = async () => {
-    // open confirmation modal instead of immediate delete
-    setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
@@ -147,14 +139,185 @@ export default function TaskDetailSidebar({
   };
 
   const toggleImportant = () => {
-    if (editedTask) {
-      setEditedTask({ ...editedTask, is_important: !editedTask.is_important });
-    }
+    if (!editedTask) return;
+    const prev = { ...editedTask };
+    const optimistic = {
+      ...editedTask,
+      is_important: !editedTask.is_important,
+    };
+    // optimistic local update
+    setEditedTask(optimistic);
+    try {
+      onUpdate(optimistic);
+    } catch (e) {}
+
+    // persist to backend
+    void (async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Please log in to update task.");
+          setEditedTask(prev);
+          onUpdate(prev);
+          return;
+        }
+
+        const backend =
+          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+        const res = await fetch(`${backend}/api/v1/todos/${editedTask.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: optimistic.title,
+            description: optimistic.description,
+            due_time: optimistic.due_time,
+            is_important: optimistic.is_important,
+            is_completed: optimistic.is_completed,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "Failed to update task");
+          setEditedTask(prev);
+          onUpdate(prev);
+          return;
+        }
+
+        const updated = await res.json();
+        setEditedTask(updated);
+        onUpdate(updated);
+      } catch (err) {
+        console.error("toggleImportant error:", err);
+        alert("Cannot connect to backend.");
+        setEditedTask(prev);
+        onUpdate(prev);
+      }
+    })();
   };
 
   const toggleCompleted = () => {
-    if (editedTask) {
-      setEditedTask({ ...editedTask, is_completed: !editedTask.is_completed });
+    if (!editedTask) return;
+    const prev = { ...editedTask };
+    const optimistic = {
+      ...editedTask,
+      is_completed: !editedTask.is_completed,
+    };
+    setEditedTask(optimistic);
+    try {
+      onUpdate(optimistic);
+    } catch (e) {}
+
+    void (async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          alert("Please log in to update task.");
+          setEditedTask(prev);
+          onUpdate(prev);
+          return;
+        }
+
+        const backend =
+          process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+        const res = await fetch(`${backend}/api/v1/todos/${editedTask.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: optimistic.title,
+            description: optimistic.description,
+            due_time: optimistic.due_time,
+            is_important: optimistic.is_important,
+            is_completed: optimistic.is_completed,
+          }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          alert(err.detail || "Failed to update task");
+          setEditedTask(prev);
+          onUpdate(prev);
+          return;
+        }
+
+        const updated = await res.json();
+        setEditedTask(updated);
+        onUpdate(updated);
+      } catch (err) {
+        console.error("toggleCompleted error:", err);
+        alert("Cannot connect to backend.");
+        setEditedTask(prev);
+        onUpdate(prev);
+      }
+    })();
+  };
+
+  // Save title when input blurs or on Enter. Uses same pattern as toggles.
+  const handleSaveTitle = async () => {
+    if (!editedTask) return;
+    // if title hasn't changed relative to incoming task prop, skip
+    if (editedTask.title === task?.title) {
+      return;
+    }
+
+    const prev = { ...editedTask, title: task?.title ?? editedTask.title };
+    const optimistic = { ...editedTask };
+    setEditedTask(optimistic);
+    try {
+      onUpdate(optimistic);
+    } catch (e) {}
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to update task.");
+        setEditedTask(prev);
+        onUpdate(prev);
+        return;
+      }
+
+      const backend =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+      const res = await fetch(`${backend}/api/v1/todos/${editedTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: optimistic.title,
+          description: optimistic.description,
+          due_time: optimistic.due_time,
+          is_important: optimistic.is_important,
+          is_completed: optimistic.is_completed,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Failed to update title");
+        setEditedTask(prev);
+        onUpdate(prev);
+        return;
+      }
+
+      const updated = await res.json();
+      setEditedTask(updated);
+      onUpdate(updated);
+    } catch (err) {
+      console.error("handleSaveTitle error:", err);
+      alert("Cannot connect to backend.");
+      setEditedTask(prev);
+      onUpdate(prev);
     }
   };
 
@@ -233,14 +396,21 @@ export default function TaskDetailSidebar({
     if (!editedTask || !duePickerDate) return;
 
     const prev = { ...editedTask };
-    // Interpret the selected date as local midnight (so it's that day)
-    const selected = new Date(duePickerDate);
+    // Interpret the selected date/time as local time (date + optional time)
+    const [year, month, day] = (duePickerDate || "").split("-").map(Number);
+    let hours = 0;
+    let minutes = 0;
+    if (duePickerTime) {
+      const [hh, mm] = duePickerTime.split(":").map(Number);
+      hours = hh || 0;
+      minutes = mm || 0;
+    }
     const iso = new Date(
-      selected.getFullYear(),
-      selected.getMonth(),
-      selected.getDate(),
-      0,
-      0,
+      year,
+      (month || 1) - 1,
+      day || 1,
+      hours,
+      minutes,
       0
     ).toISOString();
 
@@ -293,6 +463,7 @@ export default function TaskDetailSidebar({
       onUpdate(updated);
       setShowDuePicker(false);
       setDuePickerDate(null);
+      setDuePickerTime(null);
       try {
         showToast("success!");
       } catch {}
@@ -307,7 +478,7 @@ export default function TaskDetailSidebar({
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
     try {
-      return new Date(dateString).toLocaleDateString("vi-VN", {
+      return new Date(dateString).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -396,6 +567,13 @@ export default function TaskDetailSidebar({
                       prev ? { ...prev, title: e.target.value } : null
                     )
                   }
+                  onBlur={() => void handleSaveTitle()}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void handleSaveTitle();
+                    }
+                  }}
                   className="w-full text-sm font-medium border-none outline-none bg-transparent"
                   autoFocus
                 />
@@ -448,11 +626,18 @@ export default function TaskDetailSidebar({
                       try {
                         const d = new Date(editedTask.due_time);
                         const isoDate = d.toISOString().slice(0, 10);
+                        const hh = String(d.getHours()).padStart(2, "0");
+                        const mm = String(d.getMinutes()).padStart(2, "0");
                         setDuePickerDate(isoDate);
+                        setDuePickerTime(`${hh}:${mm}`);
                       } catch {}
                     } else {
-                      const todayIso = new Date().toISOString().slice(0, 10);
+                      const now = new Date();
+                      const todayIso = now.toISOString().slice(0, 10);
+                      const hh = String(now.getHours()).padStart(2, "0");
+                      const mm = String(now.getMinutes()).padStart(2, "0");
                       setDuePickerDate(todayIso);
+                      setDuePickerTime(`${hh}:${mm}`);
                     }
                     setShowDuePicker(true);
                   }}
@@ -463,12 +648,20 @@ export default function TaskDetailSidebar({
                 </button>
               ) : (
                 <div className="p-2 bg-white border rounded space-y-2">
-                  <input
-                    type="date"
-                    value={duePickerDate || ""}
-                    onChange={(e) => setDuePickerDate(e.target.value)}
-                    className="text-sm p-1 border rounded"
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="date"
+                      value={duePickerDate || ""}
+                      onChange={(e) => setDuePickerDate(e.target.value)}
+                      className="text-sm p-1 border rounded"
+                    />
+                    <input
+                      type="time"
+                      value={duePickerTime || ""}
+                      onChange={(e) => setDuePickerTime(e.target.value)}
+                      className="text-sm p-1 border rounded"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -486,6 +679,7 @@ export default function TaskDetailSidebar({
                         e.stopPropagation();
                         setShowDuePicker(false);
                         setDuePickerDate(null);
+                        setDuePickerTime(null);
                       }}
                       className="px-3 py-1 bg-gray-200 rounded text-sm"
                     >
@@ -503,17 +697,27 @@ export default function TaskDetailSidebar({
               Add note
             </label>
             {isEditing ? (
-              <textarea
-                value={editedTask?.description || ""}
-                onChange={(e) =>
-                  setEditedTask((prev) =>
-                    prev ? { ...prev, description: e.target.value } : null
-                  )
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg resize-none"
-                rows={3}
-                placeholder="Add a note..."
-              />
+              <>
+                <textarea
+                  value={editedTask?.description || ""}
+                  onChange={(e) =>
+                    setEditedTask((prev) =>
+                      prev ? { ...prev, description: e.target.value } : null
+                    )
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-lg resize-none"
+                  rows={3}
+                  placeholder="Add a note..."
+                />
+                <div className="mt-2 flex justify-end">
+                  <button
+                    onClick={handleSaveDescription}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium shadow-md"
+                  >
+                    Save Note
+                  </button>
+                </div>
+              </>
             ) : (
               <div className="w-full p-2 border border-gray-300 rounded-lg min-h-[64px] text-gray-500">
                 {task.description || "Add a note..."}
@@ -536,18 +740,11 @@ export default function TaskDetailSidebar({
           {/* Action Buttons: Save (left) and Delete (right) */}
           <div className="flex items-center justify-between pt-3">
             <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium shadow-md"
-            >
-              Save
-            </button>
-
-            <button
               onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-2 px-4 py-2 text-white text-sm bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm"
               aria-label="Delete task"
             >
-              Delete
+              Delete Task
             </button>
           </div>
         </div>
