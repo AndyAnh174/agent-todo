@@ -11,6 +11,10 @@ import {
   MagnifyingGlassIcon,
   PlusIcon,
   XMarkIcon,
+  ChartBarIcon,
+  TagIcon,
+  FolderIcon,
+  ChatBubbleLeftRightIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -100,6 +104,16 @@ export default function Sidebar(props: SidebarProps = {}) {
       <div className="border-1 border-gray-200 mb-5"></div>
       <nav className="space-y-2 text-sm">
         <Link
+          href="/dashboard"
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/dashboard") ? "bg-gray-200 font-semibold" : ""
+          }`}
+        >
+          <ChartBarIcon className="w-5 h-5 text-indigo-600" />
+          <span>Dashboard</span>
+        </Link>
+
+        <Link
           href="/myday"
           className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
             isActive("/myday") ? "bg-gray-200 font-semibold" : ""
@@ -137,6 +151,36 @@ export default function Sidebar(props: SidebarProps = {}) {
         >
           <HomeIcon className="w-5 h-5 text-sky-600" />
           <span>Tasks</span>
+        </Link>
+
+        <Link
+          href="/tags"
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/tags") ? "bg-gray-200 font-semibold" : ""
+          }`}
+        >
+          <TagIcon className="w-5 h-5 text-blue-600" />
+          <span>Tags</span>
+        </Link>
+
+        <Link
+          href="/groups"
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/groups") ? "bg-gray-200 font-semibold" : ""
+          }`}
+        >
+          <FolderIcon className="w-5 h-5 text-green-600" />
+          <span>Groups</span>
+        </Link>
+
+        <Link
+          href="/chat"
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/chat") ? "bg-gray-200 font-semibold" : ""
+          }`}
+        >
+          <ChatBubbleLeftRightIcon className="w-5 h-5 text-purple-600" />
+          <span>AI Chat</span>
         </Link>
       </nav>
 

@@ -2,13 +2,13 @@
 
 ## Tổng quan
 
-Hệ thống AI Agent được tích hợp với LangChain + Qwen3:4b + BGE-M3 Embedding + Qdrant Vector Database để cung cấp khả năng chat thông minh và semantic search cho quản lý todo.
+Hệ thống AI Agent được tích hợp với LangChain + llama3.1:8b + BGE-M3 Embedding + Qdrant Vector Database để cung cấp khả năng chat thông minh và semantic search cho quản lý todo.
 
 ## Kiến trúc
 
 ### Components chính:
 - **LangChain Agent**: ConversationalTodoAgent với function calling
-- **Qwen3:4b**: LLM model chạy trên Ollama
+- **llama3.1:8b**: LLM model chạy trên Ollama
 - **BGE-M3**: Embedding API cho semantic search
 - **Qdrant**: Vector database lưu trữ embeddings
 - **Redis**: Conversation memory và session management
@@ -208,7 +208,7 @@ GET /api/v1/agent/stats
 ```bash
 # Ollama
 OLLAMA_HOST=http://222.253.80.30:11434
-OLLAMA_MODEL=qwen3:4b
+OLLAMA_MODEL=llama3.1:8b
 
 # BGE-M3 Embedding
 BGE3_API_URL=https://embed.andyanh.id.vn/embed

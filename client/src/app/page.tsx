@@ -41,7 +41,7 @@ export default function Home() {
           localStorage.setItem("user", JSON.stringify(newUser));
         } catch (e) {}
       }
-      window.location.href = "/myday";
+      window.location.href = "/chat";
     } catch (err: any) {
       if (err instanceof TypeError) {
         setError("Network error hoặc CORS blocked request.");

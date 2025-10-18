@@ -30,6 +30,7 @@ class TodoOut(BaseModel):
     due_time: Optional[datetime]
     is_completed: bool
     is_important: bool
+    order_index: Optional[int] = 0
     user_id: Optional[str]
     group_id: Optional[str]
     tags: Optional[List[TagOut]] = []

@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import TaskInput from "@/components/TaskInput";
 import TaskDetailSidebar from "@/components/TaskDetailSidebar";
+import TodoTags from "@/components/TodoTags";
 import {
   DndContext,
   closestCenter,
@@ -28,6 +29,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { isOverdue, isDueToday, getDueDateStatus } from "@/utils/dateUtils";
 
 // Sortable Task Component
 function SortableTask({
@@ -56,13 +58,20 @@ function SortableTask({
     opacity: isDragging ? 0.5 : 1,
   };
 
+  const dueStatus = getDueDateStatus(todo.due_time);
+  const isOverdueTodo = dueStatus === 'overdue';
+  
   return (
     <div
       ref={setNodeRef}
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 touch-none"
+      className={`rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 touch-none ${
+        isOverdueTodo 
+          ? 'bg-red-50 border-l-4 border-red-500' 
+          : 'bg-white'
+      }`}
       onClick={() => handleTaskClick(todo)}
     >
       <div className="flex items-start gap-3">
@@ -94,12 +103,21 @@ function SortableTask({
         <div>
           <div
             className={`font-medium ${
-              todo.is_completed ? "line-through text-gray-500" : "text-black"
+              todo.is_completed 
+                ? "line-through text-gray-500" 
+                : isOverdueTodo 
+                  ? "text-red-600 font-semibold" 
+                  : "text-black"
             }`}
           >
             {todo.title}
+            {isOverdueTodo && !todo.is_completed && (
+              <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                QUÁ HẠN
+              </span>
+            )}
           </div>
-          <div className="text-xs text-gray-500">Tasks</div>
+          <TodoTags tags={todo.tags} />
         </div>
       </div>
       <div
@@ -304,6 +322,39 @@ export default function Task() {
           )
       : unorderedActiveTodos;
 
+  // Persist todo order to backend
+  const persistTodoOrder = async (todoIds: string[]) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      
+      const res = await fetch(`${base}/api/v1/todos/order`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(todoIds),
+      });
+
+      if (!res.ok) {
+        // Only log error if it's not a 500 (server error) or 422 (validation error)
+        if (res.status !== 500 && res.status !== 422) {
+          console.error("Failed to persist todo order:", res.statusText);
+        }
+      }
+    } catch (err) {
+      // Only log error if it's not a network error
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        // Network error, server might be down
+        return;
+      }
+      console.error("Error persisting todo order:", err);
+    }
+  };
+
   // Handle drag end
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -322,8 +373,8 @@ export default function Task() {
       // Update local order state
       setLocalTodosOrder(newOrder);
 
-      // TODO: Persist the new order to backend if needed
-      // persistTodoOrder(newOrder);
+      // Persist the new order to backend
+      persistTodoOrder(newOrder);
     }
   };
 
@@ -415,10 +466,18 @@ export default function Task() {
 
                       {showCompleted && (
                         <div className="mt-3 space-y-2">
-                          {completedTodos.map((todo: any) => (
+                          {completedTodos.map((todo: any) => {
+                            const dueStatus = getDueDateStatus(todo.due_time);
+                            const isOverdueTodo = dueStatus === 'overdue';
+                            
+                            return (
                             <div
                               key={todo.id}
-                              className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                              className={`rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 ${
+                                isOverdueTodo 
+                                  ? 'bg-red-50 border-l-4 border-red-500' 
+                                  : 'bg-white'
+                              }`}
                               onClick={() => handleTaskClick(todo)}
                             >
                               <div className="flex items-start gap-3">
@@ -451,15 +510,22 @@ export default function Task() {
                                   <div
                                     className={`font-medium ${
                                       todo.is_completed
-                                        ? "line-through text-gray-500"
-                                        : "text-black"
+                                        ? isOverdueTodo 
+                                          ? "line-through text-red-500"
+                                          : "line-through text-gray-500"
+                                        : isOverdueTodo 
+                                          ? "text-red-600 font-semibold"
+                                          : "text-black"
                                     }`}
                                   >
                                     {todo.title}
+                                    {isOverdueTodo && !todo.is_completed && (
+                                      <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                                        QUÁ HẠN
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="text-xs text-gray-500">
-                                    Tasks
-                                  </div>
+                                  <TodoTags tags={todo.tags} />
                                 </div>
                               </div>
                               <div
@@ -483,7 +549,8 @@ export default function Task() {
                                 )}
                               </div>
                             </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>

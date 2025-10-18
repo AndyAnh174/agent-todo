@@ -25,7 +25,7 @@ class Settings:
     
     # Ollama Configuration
     ollama_host: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:4b"
+    ollama_model: str = "llama3.1:8b"
     
     # BGE-M3 Embedding API Configuration
     bge3_api_url: str = "https://embed.andyanh.id.vn/embed"
@@ -52,7 +52,7 @@ def load_settings() -> Settings:
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         celery_broker_url=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
         ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
-        ollama_model=os.getenv("OLLAMA_MODEL", "qwen3:4b"),
+        ollama_model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"),
         bge3_api_url=os.getenv("BGE3_API_URL", "https://embed.andyanh.id.vn/embed"),
         qdrant_host=os.getenv("QDRANT_HOST", "localhost"),
         qdrant_port=int(os.getenv("QDRANT_PORT", "6333")),

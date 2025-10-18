@@ -3,6 +3,7 @@ import { CalendarIcon } from "@heroicons/react/24/outline";
 import Sidebar from "@/components/Sidebar";
 import TaskInput from "@/components/TaskInput";
 import TaskDetailSidebar from "@/components/TaskDetailSidebar";
+import TodoTags from "@/components/TodoTags";
 import { useEffect, useState } from "react";
 import {
   StarIcon as StarOutline,
@@ -10,6 +11,7 @@ import {
   Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
+import { isOverdue, isDueToday, getDueDateStatus } from "@/utils/dateUtils";
 
 export default function Planned() {
   const [todos, setTodos] = useState<Array<any>>([]);
@@ -288,12 +290,20 @@ export default function Planned() {
                         }
                       });
 
-                      const renderItem = (todo: any) => (
-                      <div
-                        key={todo.id}
-                          className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50"
+                      const renderItem = (todo: any) => {
+                        const dueStatus = getDueDateStatus(todo.due_time);
+                        const isOverdueTodo = dueStatus === 'overdue';
+                        
+                        return (
+                        <div
+                          key={todo.id}
+                          className={`rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 ${
+                            isOverdueTodo 
+                              ? 'bg-red-50 border-l-4 border-red-500' 
+                              : 'bg-white'
+                          }`}
                           onClick={() => handleTaskClick(todo)}
-                      >
+                        >
                         <div className="flex items-start gap-3">
                             <div
                               onClick={(e) => {
@@ -324,13 +334,22 @@ export default function Planned() {
                               <div
                                 className={`font-medium ${
                                   todo.is_completed
-                                    ? "line-through text-gray-500"
-                                    : "text-black"
+                                    ? isOverdueTodo 
+                                      ? "line-through text-red-500"
+                                      : "line-through text-gray-500"
+                                    : isOverdueTodo 
+                                      ? "text-red-600 font-semibold"
+                                      : "text-black"
                                 }`}
                               >
                               {todo.title}
+                              {isOverdueTodo && !todo.is_completed && (
+                                <span className="ml-2 text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">
+                                  QUÁ HẠN
+                                </span>
+                              )}
                             </div>
-                            <div className="text-xs text-gray-500">Tasks</div>
+                            <TodoTags tags={todo.tags} />
                           </div>
                         </div>
                           <div
@@ -351,7 +370,8 @@ export default function Planned() {
                             )}
                           </div>
                         </div>
-                      );
+                        );
+                      };
 
                       return (
                         <>

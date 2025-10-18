@@ -29,7 +29,8 @@ def get_target_metadata():
     os.environ.setdefault("APP_ENV", os.getenv("APP_ENV", "development"))
 
     # import models Base
-    from server.app.models import Base  # type: ignore
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'server'))
+    from app.models import Base  # type: ignore
 
     return Base.metadata
 

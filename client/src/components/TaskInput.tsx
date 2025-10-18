@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import SmartAnalysis from "./SmartAnalysis";
 
 interface TaskInputProps {
   defaultIsImportant?: boolean;
@@ -9,7 +10,10 @@ interface TaskInputProps {
 export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
   const [open, setOpen] = useState(false);
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+  const [showSmartAnalysis, setShowSmartAnalysis] = useState(false);
   const [pendingTask, setPendingTask] = useState<any>(null);
+  const [currentTitle, setCurrentTitle] = useState("");
+  const [currentDescription, setCurrentDescription] = useState("");
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
@@ -19,10 +23,14 @@ export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
       if (!wrapperRef.current) return;
       if (e.target instanceof Node && !wrapperRef.current.contains(e.target)) {
         setOpen(false);
+        setShowSmartAnalysis(false);
       }
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setShowSmartAnalysis(false);
+      }
     }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
@@ -39,6 +47,87 @@ export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
   useEffect(() => {
     if (showDescriptionModal) descriptionRef.current?.focus();
   }, [showDescriptionModal]);
+
+  const handleSmartAnalysisComplete = async (analysis: any) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to add a task.");
+        return;
+      }
+
+      const backend =
+        process.env.NEXT_PUBLIC_API_BASE_URL ||
+        process.env.NEXT_PUBLIC_BACKEND_URL ||
+        "http://localhost:8000";
+
+      console.log("TaskInput: creating todo with smart analysis", currentTitle);
+
+      // Prepare payload with smart suggestions
+      const payload: any = { 
+        title: currentTitle,
+        description: currentDescription
+      };
+      
+      // Apply smart suggestions
+      if (typeof defaultIsImportant === "boolean") {
+        payload.is_important = defaultIsImportant;
+      } else if (analysis.suggested_priority === "high") {
+        payload.is_important = true;
+      }
+      
+      if (analysis.suggested_deadline) {
+        payload.due_time = analysis.suggested_deadline;
+      } else {
+        payload.due_time = new Date().toISOString();
+      }
+
+      if (analysis.suggested_group) {
+        payload.group_id = analysis.suggested_group;
+      }
+
+      if (analysis.suggested_tags && analysis.suggested_tags.length > 0) {
+        // Note: This would require creating tags first, then linking them
+        // For now, we'll just store the suggested tags in description
+        payload.description = `${payload.description || ''}\n\nSuggested tags: ${analysis.suggested_tags.join(', ')}`.trim();
+      }
+
+      const res = await fetch(`${backend}/api/v1/todos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        console.error("TaskInput: create todo failed", err);
+        alert(err.message || "Failed to create todo");
+        return;
+      }
+
+      const created = await res.json();
+      console.log("TaskInput: created todo", created);
+
+      if (inputRef.current) inputRef.current.value = "";
+      setOpen(false);
+      setShowSmartAnalysis(false);
+
+      // Emit created event
+      window.dispatchEvent(
+        new CustomEvent("todo:created", { detail: created })
+      );
+
+      // Show description modal for additional details
+      setPendingTask(created);
+      setShowDescriptionModal(true);
+    } catch (err) {
+      console.error("TaskInput: network error", err);
+      alert("Cannot connect to backend.");
+    }
+  };
 
   const handleSaveDescription = async (description: string) => {
     if (!pendingTask) return;
@@ -97,63 +186,12 @@ export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
             const title = inputRef.current?.value?.trim();
             if (!title) return;
 
-            const token = localStorage.getItem("token");
-            if (!token) {
-              alert("Please log in to add a task.");
-              return;
-            }
-
-            // prefer NEXT_PUBLIC_API_BASE_URL but keep legacy NEXT_PUBLIC_BACKEND_URL as fallback
-            const backend =
-              process.env.NEXT_PUBLIC_API_BASE_URL ||
-              process.env.NEXT_PUBLIC_BACKEND_URL ||
-              "http://localhost:8000";
-
-            try {
-              console.log("TaskInput: creating todo", title);
-
-              (inputRef.current as HTMLInputElement).disabled = true;
-
-              // default due_time to now so newly created todos appear in "Today"
-              const payload: any = { title };
-              if (typeof defaultIsImportant === "boolean") {
-                payload.is_important = defaultIsImportant;
-              }
-              if (!payload.due_time)
-                payload.due_time = new Date().toISOString();
-
-              const res = await fetch(`${backend}/api/v1/todos`, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify(payload),
-              });
-
-              if (!res.ok) {
-                const err = await res.json().catch(() => ({}));
-                console.error("TaskInput: create todo failed", err);
-                alert(err.message || "Failed to create todo");
-                return;
-              }
-
-              const created = await res.json();
-              console.log("TaskInput: created todo", created);
-
-              if (inputRef.current) inputRef.current.value = "";
-              setOpen(false);
-
-              // Show description modal instead of immediately dispatching event
-              setPendingTask(created);
-              setShowDescriptionModal(true);
-            } catch (err) {
-              console.error("TaskInput: network error", err);
-              alert("Cannot connect to backend.");
-            } finally {
-              if (inputRef.current)
-                (inputRef.current as HTMLInputElement).disabled = false;
-            }
+            // Store current values for smart analysis
+            setCurrentTitle(title);
+            setCurrentDescription("");
+            
+            // Show smart analysis modal
+            setShowSmartAnalysis(true);
           }}
         >
           <div className="w-6 h-6 border rounded-full" />
@@ -208,6 +246,21 @@ export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Smart Analysis Modal */}
+      {showSmartAnalysis && (
+        <div className="fixed inset-0 bg-white/45 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white shadow-2xl rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <SmartAnalysis
+              title={currentTitle}
+              description={currentDescription}
+              onAnalysisComplete={handleSmartAnalysisComplete}
+              onClose={() => setShowSmartAnalysis(false)}
+              className="border-0 shadow-none"
+            />
           </div>
         </div>
       )}

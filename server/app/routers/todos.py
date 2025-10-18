@@ -1,5 +1,6 @@
 from typing import List, Optional
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
@@ -15,6 +16,8 @@ from ..tasks.embedding_tasks import create_todo_embedding_task, update_todo_embe
 
 
 router = APIRouter(prefix="/api/v1", tags=["todos"])
+
+logger = logging.getLogger(__name__)
 
 
 @router.get("/todos/smart/insights")
@@ -62,7 +65,12 @@ def list_todos(
     if group_id:
         query = query.filter(Todo.group_id == group_id)
     # tag_id filter would require join with todo_tag; implement later
-    items = query.order_by(Todo.created_at.desc()).limit(limit).offset(offset).all()
+    try:
+        # Try to order by order_index first
+        items = query.order_by(Todo.order_index.asc(), Todo.created_at.desc()).limit(limit).offset(offset).all()
+    except Exception:
+        # Fallback to created_at only if order_index column doesn't exist
+        items = query.order_by(Todo.created_at.desc()).limit(limit).offset(offset).all()
     return items
 
 
@@ -199,5 +207,114 @@ def complete_todo(todo_id: str, payload: TodoCompletePatch, db: Session = Depend
     update_todo_embedding_task.delay(str(todo.id))
     
     return todo
+
+
+# Tag management endpoints for todos
+@router.post("/todos/{todo_id}/tags")
+def add_tag_to_todo(todo_id: str, tag_id: str = Query(...), db: Session = Depends(db_session), user=Depends(get_current_user)):
+    """Add a tag to a todo"""
+    # Check if todo exists and belongs to user
+    todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    # Check if tag exists
+    tag = db.query(Tag).filter(Tag.id == tag_id).first()
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    
+    # Check if relationship already exists
+    existing_relation = db.query(TodoTag).filter(
+        TodoTag.todo_id == todo_id, 
+        TodoTag.tag_id == tag_id
+    ).first()
+    
+    if existing_relation:
+        return {"message": "Tag already assigned to todo"}
+    
+    # Create new relationship
+    todo_tag = TodoTag(todo_id=todo_id, tag_id=tag_id)
+    db.add(todo_tag)
+    db.commit()
+    
+    # Refresh todo with tags
+    db.refresh(todo)
+    todo = db.query(Todo).options(joinedload(Todo.tags)).filter(Todo.id == todo_id).first()
+    
+    return {"message": "Tag added successfully", "todo": todo}
+
+
+@router.delete("/todos/{todo_id}/tags/{tag_id}")
+def remove_tag_from_todo(todo_id: str, tag_id: str, db: Session = Depends(db_session), user=Depends(get_current_user)):
+    """Remove a tag from a todo"""
+    # Check if todo exists and belongs to user
+    todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    # Find and delete the relationship
+    todo_tag = db.query(TodoTag).filter(
+        TodoTag.todo_id == todo_id, 
+        TodoTag.tag_id == tag_id
+    ).first()
+    
+    if not todo_tag:
+        raise HTTPException(status_code=404, detail="Tag not found on this todo")
+    
+    db.delete(todo_tag)
+    db.commit()
+    
+    return {"message": "Tag removed successfully"}
+
+
+@router.get("/todos/{todo_id}/tags")
+def get_todo_tags(todo_id: str, db: Session = Depends(db_session), user=Depends(get_current_user)):
+    """Get all tags for a todo"""
+    # Check if todo exists and belongs to user
+    todo = db.query(Todo).options(joinedload(Todo.tags)).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
+    if not todo:
+        raise HTTPException(status_code=404, detail="Todo not found")
+    
+    return todo.tags
+
+
+@router.put("/todos/order")
+def update_todos_order(
+    todo_ids: List[str],
+    db: Session = Depends(db_session),
+    user=Depends(get_current_user)
+):
+    """Update the order of todos"""
+    try:
+        # Verify all todos belong to the user
+        todos = db.query(Todo).filter(
+            Todo.id.in_(todo_ids),
+            Todo.user_id == user.id
+        ).all()
+        
+        if len(todos) != len(todo_ids):
+            raise HTTPException(status_code=400, detail="Some todos not found or don't belong to user")
+        
+        # Update order_index for each todo (with fallback if column doesn't exist)
+        for index, todo_id in enumerate(todo_ids):
+            todo = db.query(Todo).filter(Todo.id == todo_id).first()
+            if todo:
+                try:
+                    # Try to update order_index
+                    todo.order_index = index
+                except AttributeError:
+                    # Column doesn't exist yet, skip silently
+                    logger.warning(f"order_index column not found, skipping order update for todo {todo_id}")
+                    continue
+                todo.updated_at = datetime.now()
+        
+        db.commit()
+        
+        return {"message": "Todo order updated successfully", "updated_count": len(todo_ids)}
+        
+    except Exception as e:
+        db.rollback()
+        logger.error(f"Error updating todo order: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update todo order: {e}")
 
 

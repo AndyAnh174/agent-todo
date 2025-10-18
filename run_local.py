@@ -93,7 +93,7 @@ def setup_environment():
         'CELERY_BROKER_URL': 'redis://localhost:6379/0',
         'CELERY_RESULT_BACKEND': 'redis://localhost:6379/0',
         'OLLAMA_HOST': 'http://222.253.80.30:11434',
-        'OLLAMA_MODEL': 'qwen3:4b',
+        'OLLAMA_MODEL': 'llama3.1:8b',
         'BGE3_API_URL': 'https://embed.andyanh.id.vn/embed',
         'QDRANT_HOST': 'localhost',
         'QDRANT_PORT': '6333',

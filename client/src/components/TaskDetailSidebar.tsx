@@ -8,8 +8,14 @@ import {
   ClockIcon,
   CalendarIcon,
   TrashIcon,
+  PencilIcon,
+  CheckIcon,
+  XMarkIcon as XIcon,
+  TagIcon,
+  FolderIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
+import TodoTags from "./TodoTags";
 
 interface Task {
   id: string;
@@ -20,6 +26,12 @@ interface Task {
   is_important: boolean;
   user_id?: string;
   group_id?: string;
+  tags?: Array<{
+    id: string;
+    name: string;
+    created_at?: string;
+    updated_at?: string;
+  }>;
   created_at?: string;
   updated_at?: string;
 }
@@ -47,6 +59,14 @@ export default function TaskDetailSidebar({
   const [duePickerTime, setDuePickerTime] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  
+  // CRUD states
+  const [availableTags, setAvailableTags] = useState<Array<{id: string; name: string}>>([]);
+  const [availableGroups, setAvailableGroups] = useState<Array<{id: string; name: string}>>([]);
+  const [showTagManager, setShowTagManager] = useState(false);
+  const [showGroupManager, setShowGroupManager] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
+  const [newGroupName, setNewGroupName] = useState("");
 
   const showToast = (msg: string, ms = 2500) => {
     setToastMessage(msg);
@@ -60,6 +80,42 @@ export default function TaskDetailSidebar({
       setIsEditing(true);
     }
   }, [task]);
+
+  // Load available tags and groups
+  useEffect(() => {
+    const loadTagsAndGroups = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+        
+        // Load tags
+        const tagsRes = await fetch(`${base}/api/v1/tags`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (tagsRes.ok) {
+          const tags = await tagsRes.json();
+          setAvailableTags(tags);
+        }
+
+        // Load groups
+        const groupsRes = await fetch(`${base}/api/v1/groups`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (groupsRes.ok) {
+          const groups = await groupsRes.json();
+          setAvailableGroups(groups);
+        }
+      } catch (err) {
+        console.error("Error loading tags/groups:", err);
+      }
+    };
+
+    if (isOpen) {
+      loadTagsAndGroups();
+    }
+  }, [isOpen]);
 
   if (!isOpen || !task) return null;
 
@@ -478,12 +534,13 @@ export default function TaskDetailSidebar({
   const formatDate = (dateString?: string) => {
     if (!dateString) return "";
     try {
-      return new Date(dateString).toLocaleDateString("en-US", {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
         year: "numeric",
         month: "long",
         day: "numeric",
         hour: "2-digit",
         minute: "2-digit",
+        timeZone: "Asia/Ho_Chi_Minh"
       });
     } catch {
       return "";
@@ -493,13 +550,159 @@ export default function TaskDetailSidebar({
   const formatDateOnly = (dateString?: string) => {
     if (!dateString) return "";
     try {
-      return new Date(dateString).toLocaleDateString(undefined, {
+      return new Date(dateString).toLocaleDateString("vi-VN", {
         year: "numeric",
         month: "long",
         day: "numeric",
+        timeZone: "Asia/Ho_Chi_Minh"
       });
     } catch {
       return "";
+    }
+  };
+
+  // CRUD Functions
+  const handleCreateTag = async () => {
+    if (!newTagName.trim() || !editedTask) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      
+      // Create new tag
+      const res = await fetch(`${base}/api/v1/tags`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newTagName.trim() }),
+      });
+
+      if (res.ok) {
+        const newTag = await res.json();
+        setAvailableTags(prev => [...prev, newTag]);
+        setNewTagName("");
+        showToast("Tag created successfully!");
+      }
+    } catch (err) {
+      console.error("Error creating tag:", err);
+      showToast("Error creating tag");
+    }
+  };
+
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim() || !editedTask) return;
+    
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      
+      // Create new group
+      const res = await fetch(`${base}/api/v1/groups`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newGroupName.trim() }),
+      });
+
+      if (res.ok) {
+        const newGroup = await res.json();
+        setAvailableGroups(prev => [...prev, newGroup]);
+        setNewGroupName("");
+        showToast("Group created successfully!");
+      }
+    } catch (err) {
+      console.error("Error creating group:", err);
+      showToast("Error creating group");
+    }
+  };
+
+  const handleToggleTag = async (tagId: string) => {
+    if (!editedTask) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      
+      const isCurrentlyTagged = editedTask.tags?.some(tag => tag.id === tagId);
+      
+      if (isCurrentlyTagged) {
+        // Remove tag
+        const res = await fetch(`${base}/api/v1/todos/${editedTask.id}/tags/${tagId}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        if (res.ok) {
+          const updatedTask = { ...editedTask };
+          updatedTask.tags = updatedTask.tags?.filter(tag => tag.id !== tagId) || [];
+          setEditedTask(updatedTask);
+          onUpdate(updatedTask);
+          showToast("Tag removed!");
+        }
+      } else {
+        // Add tag
+        const res = await fetch(`${base}/api/v1/todos/${editedTask.id}/tags?tag_id=${tagId}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        if (res.ok) {
+          const updatedTask = { ...editedTask };
+          const tagToAdd = availableTags.find(tag => tag.id === tagId);
+          if (tagToAdd) {
+            updatedTask.tags = [...(updatedTask.tags || []), tagToAdd];
+            setEditedTask(updatedTask);
+            onUpdate(updatedTask);
+            showToast("Tag added!");
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error toggling tag:", err);
+      showToast("Error updating tag");
+    }
+  };
+
+  const handleChangeGroup = async (groupId: string) => {
+    if (!editedTask) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+      
+      const res = await fetch(`${base}/api/v1/todos/${editedTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ group_id: groupId }),
+      });
+
+      if (res.ok) {
+        const updatedTask = { ...editedTask, group_id: groupId };
+        setEditedTask(updatedTask);
+        onUpdate(updatedTask);
+        showToast("Group updated!");
+      }
+    } catch (err) {
+      console.error("Error changing group:", err);
+      showToast("Error updating group");
     }
   };
 
@@ -522,12 +725,25 @@ export default function TaskDetailSidebar({
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b border-gray-200">
           <h2 className="text-base font-medium text-gray-900">Task Details</h2>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-gray-100 rounded-full"
-          >
-            <XMarkIcon className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="p-1 hover:bg-gray-100 rounded-full"
+              title={isEditing ? "View mode" : "Edit mode"}
+            >
+              {isEditing ? (
+                <XIcon className="w-4 h-4 text-gray-600" />
+              ) : (
+                <PencilIcon className="w-4 h-4 text-blue-600" />
+              )}
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1 hover:bg-gray-100 rounded-full"
+            >
+              <XMarkIcon className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Content */}
@@ -725,6 +941,81 @@ export default function TaskDetailSidebar({
             )}
           </div>
 
+          {/* Tags */}
+          <div className="mt-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Tags
+              </label>
+              <button
+                onClick={() => setShowTagManager(!showTagManager)}
+                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <TagIcon className="w-3 h-3" />
+                Manage
+              </button>
+            </div>
+            
+            {editedTask?.tags && editedTask.tags.length > 0 && (
+              <TodoTags tags={editedTask.tags} />
+            )}
+            
+            {showTagManager && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                <div className="space-y-2">
+                  {/* Create new tag */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newTagName}
+                      onChange={(e) => setNewTagName(e.target.value)}
+                      placeholder="New tag name"
+                      className="flex-1 text-xs px-2 py-1 border rounded"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCreateTag();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleCreateTag}
+                      disabled={!newTagName.trim()}
+                      className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      <CheckIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                  
+                  {/* Available tags */}
+                  <div className="max-h-32 overflow-y-auto">
+                    <div className="text-xs text-gray-600 mb-1">Available tags:</div>
+                    <div className="space-y-1">
+                      {availableTags.map(tag => {
+                        const isTagged = editedTask?.tags?.some(t => t.id === tag.id);
+                        return (
+                          <div key={tag.id} className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleToggleTag(tag.id)}
+                              className={`w-4 h-4 rounded border flex items-center justify-center ${
+                                isTagged 
+                                  ? 'bg-blue-600 border-blue-600 text-white' 
+                                  : 'border-gray-300'
+                              }`}
+                            >
+                              {isTagged && <CheckIcon className="w-2 h-2" />}
+                            </button>
+                            <span className="text-xs">{tag.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Due Date */}
           {editedTask?.due_time && (
             <div className="mt-2">
@@ -737,6 +1028,89 @@ export default function TaskDetailSidebar({
               </div>
             </div>
           )}
+
+          {/* Group */}
+          <div className="mt-2">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700">
+                Group
+              </label>
+              <button
+                onClick={() => setShowGroupManager(!showGroupManager)}
+                className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              >
+                <FolderIcon className="w-3 h-3" />
+                Manage
+              </button>
+            </div>
+            
+            <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg">
+              {editedTask?.group_id ? 
+                availableGroups.find(g => g.id === editedTask.group_id)?.name || 'Unknown Group' :
+                'No group assigned'
+              }
+            </div>
+            
+            {showGroupManager && (
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg border">
+                <div className="space-y-2">
+                  {/* Create new group */}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="New group name"
+                      className="flex-1 text-xs px-2 py-1 border rounded"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleCreateGroup();
+                        }
+                      }}
+                    />
+                    <button
+                      onClick={handleCreateGroup}
+                      disabled={!newGroupName.trim()}
+                      className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <CheckIcon className="w-3 h-3" />
+                    </button>
+                  </div>
+                  
+                  {/* Available groups */}
+                  <div className="max-h-32 overflow-y-auto">
+                    <div className="text-xs text-gray-600 mb-1">Available groups:</div>
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => handleChangeGroup('')}
+                        className={`w-full text-left px-2 py-1 text-xs rounded ${
+                          !editedTask?.group_id 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        No Group
+                      </button>
+                      {availableGroups.map(group => (
+                        <button
+                          key={group.id}
+                          onClick={() => handleChangeGroup(group.id)}
+                          className={`w-full text-left px-2 py-1 text-xs rounded ${
+                            editedTask?.group_id === group.id 
+                              ? 'bg-blue-100 text-blue-800' 
+                              : 'hover:bg-gray-100'
+                          }`}
+                        >
+                          {group.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Action Buttons: Save (left) and Delete (right) */}
           <div className="flex items-center justify-between pt-3">

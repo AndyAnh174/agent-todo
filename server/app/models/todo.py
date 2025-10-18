@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import UUID
@@ -7,6 +7,10 @@ from sqlalchemy import ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from . import Base
+
+if TYPE_CHECKING:
+    from .user import User
+    from .group import Group
 
 
 class Todo(Base):
@@ -28,6 +32,7 @@ class Todo(Base):
     due_time: Mapped[Optional[datetime]] = mapped_column(sa.DateTime(timezone=True), nullable=True)
     is_completed: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, server_default=sa.text("false"))
     is_important: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, server_default=sa.text("false"))
+    order_index: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True, default=0)
     created_at: Mapped[datetime | None] = mapped_column(
         sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=True
     )
