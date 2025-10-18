@@ -45,6 +45,7 @@ export default function TaskDetailSidebar({
   const [showDuePicker, setShowDuePicker] = useState(false);
   const [duePickerDate, setDuePickerDate] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const showToast = (msg: string, ms = 2500) => {
     setToastMessage(msg);
@@ -108,8 +109,12 @@ export default function TaskDetailSidebar({
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this task?")) return;
+    // open confirmation modal instead of immediate delete
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
+    setShowDeleteModal(false);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -538,7 +543,7 @@ export default function TaskDetailSidebar({
             </button>
 
             <button
-              onClick={handleDelete}
+              onClick={() => setShowDeleteModal(true)}
               className="flex items-center gap-2 px-4 py-2 text-white text-sm bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm"
               aria-label="Delete task"
             >
@@ -546,6 +551,35 @@ export default function TaskDetailSidebar({
             </button>
           </div>
         </div>
+
+        {/* Delete confirmation modal */}
+        {showDeleteModal && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-50">
+            <div className="bg-white rounded-md p-4 shadow-md w-72">
+              <div className="text-sm font-medium mb-3">Confirm delete</div>
+              <div className="text-sm text-gray-600 mb-4">
+                Are you sure you want to delete this task? This action cannot be
+                undone.
+              </div>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(false)}
+                  className="px-3 py-1 bg-gray-200 rounded text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void confirmDelete()}
+                  className="px-3 py-1 bg-red-600 text-white rounded text-sm"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Footer */}
         <div className="p-4 border-t bg-gray-50 flex items-center justify-center">
