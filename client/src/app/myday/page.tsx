@@ -10,6 +10,115 @@ import {
   Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Sortable Task Component
+function SortableTask({
+  todo,
+  handleTaskClick,
+  handleToggleComplete,
+  handleToggleImportant,
+}: {
+  todo: any;
+  handleTaskClick: (task: any) => void;
+  handleToggleComplete: (todo: any) => void;
+  handleToggleImportant: (todo: any) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: todo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50 touch-none"
+      onClick={() => handleTaskClick(todo)}
+    >
+      <div className="flex items-start gap-3">
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            void handleToggleComplete(todo);
+          }}
+          className={`w-5 h-5 border rounded-full mt-1 flex items-center justify-center ${
+            todo.is_completed
+              ? "bg-blue-600 border-blue-600"
+              : "border-gray-300"
+          }`}
+        >
+          {todo.is_completed && (
+            <svg
+              className="w-3 h-3 text-white"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path
+                fillRule="evenodd"
+                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+        </div>
+        <div>
+          <div
+            className={`font-medium ${
+              todo.is_completed ? "line-through text-gray-500" : "text-black"
+            }`}
+          >
+            {todo.title}
+          </div>
+          <div className="text-xs text-gray-500">Tasks</div>
+        </div>
+      </div>
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          void handleToggleImportant(todo);
+        }}
+        className={`${todo.is_important ? "text-yellow-500" : "text-gray-400"}`}
+        role="button"
+        aria-pressed={todo.is_important}
+      >
+        {todo.is_important ? (
+          <StarSolid className="w-5 h-5" aria-hidden />
+        ) : (
+          <StarOutline className="w-5 h-5" aria-hidden />
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function MyDay() {
   const today = useMemo(() => {
@@ -26,10 +135,23 @@ export default function MyDay() {
   }, []);
 
   const [todos, setTodos] = useState<Array<any>>([]);
+  const [localTodosOrder, setLocalTodosOrder] = useState<string[]>([]);
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Drag & Drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Cần kéo 8px mới bắt đầu drag
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     let mounted = true;
@@ -56,7 +178,13 @@ export default function MyDay() {
 
     function onCreated(e: any) {
       const created = e?.detail;
-      if (created) setTodos((t) => [created, ...t]);
+      if (created) {
+        setTodos((t) => [created, ...t]);
+        // Add to front of local order if it's due today
+        if (isDueToday(created) && !created.is_completed) {
+          setLocalTodosOrder((prev) => [created.id, ...prev]);
+        }
+      }
     }
 
     function onUpdated(e: any) {
@@ -65,6 +193,10 @@ export default function MyDay() {
         setTodos((prevTodos) =>
           prevTodos.map((todo) => (todo.id === updated.id ? updated : todo))
         );
+        // Remove from local order if completed or no longer due today
+        if (updated.is_completed || !isDueToday(updated)) {
+          setLocalTodosOrder((prev) => prev.filter((id) => id !== updated.id));
+        }
       }
     }
 
@@ -97,7 +229,20 @@ export default function MyDay() {
 
   const todaysTodos = todos.filter(isDueToday);
   const completedTodos = todaysTodos.filter((t) => t.is_completed);
-  const activeTodos = todaysTodos.filter((t) => !t.is_completed);
+
+  // Apply local ordering to active todos
+  const unorderedActiveTodos = todaysTodos.filter((t) => !t.is_completed);
+  const activeTodos =
+    localTodosOrder.length > 0
+      ? localTodosOrder
+          .map((id) => unorderedActiveTodos.find((todo) => todo.id === id))
+          .filter(Boolean)
+          .concat(
+            unorderedActiveTodos.filter(
+              (todo) => !localTodosOrder.includes(todo.id)
+            )
+          )
+      : unorderedActiveTodos;
 
   const handleTaskClick = (task: any) => {
     setSelectedTask(task);
@@ -199,6 +344,29 @@ export default function MyDay() {
     }
   };
 
+  // Handle drag end
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = activeTodos.findIndex((item) => item.id === active.id);
+    const newIndex = activeTodos.findIndex((item) => item.id === over.id);
+
+    if (oldIndex !== -1 && newIndex !== -1) {
+      const newActiveTodos = arrayMove(activeTodos, oldIndex, newIndex);
+      const newOrder = newActiveTodos.map((todo) => todo.id);
+
+      // Update local order state
+      setLocalTodosOrder(newOrder);
+
+      // TODO: Persist the new order to backend if needed
+      // persistTodoOrder(newOrder);
+    }
+  };
+
   return (
     <div className="flex">
       {/* Desktop Sidebar */}
@@ -245,72 +413,26 @@ export default function MyDay() {
             <div className="px-4">
               <div className="p-4 max-w-4xl mx-auto">
                 <div className="space-y-2 h-[70vh] md:h-[55vh] lg:h-[65vh] overflow-y-auto custom-scroll pr-2">
-                  {activeTodos.map((todo: any) => (
-                    <div
-                      key={todo.id}
-                      className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-                      onClick={() => handleTaskClick(todo)}
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={activeTodos.map((todo) => todo.id)}
+                      strategy={verticalListSortingStrategy}
                     >
-                      <div className="flex items-start gap-3">
-                        <div
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleToggleComplete(todo);
-                          }}
-                          className={`w-5 h-5 border rounded-full mt-1 flex items-center justify-center ${
-                            todo.is_completed
-                              ? "bg-blue-600 border-blue-600"
-                              : "border-gray-300"
-                          }`}
-                        >
-                          {todo.is_completed && (
-                            <svg
-                              className="w-3 h-3 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                          )}
-                        </div>
-                        <div>
-                          <div
-                            className={`font-medium ${
-                              todo.is_completed
-                                ? "line-through text-gray-500"
-                                : "text-black"
-                            }`}
-                          >
-                            {todo.title}
-                          </div>
-                          <div className="text-xs text-gray-500">Tasks</div>
-                        </div>
-                      </div>
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleToggleImportant(todo);
-                        }}
-                        className={`${
-                          todo.is_important
-                            ? "text-yellow-500"
-                            : "text-gray-400"
-                        }`}
-                        role="button"
-                        aria-pressed={todo.is_important}
-                      >
-                        {todo.is_important ? (
-                          <StarSolid className="w-5 h-5" aria-hidden />
-                        ) : (
-                          <StarOutline className="w-5 h-5" aria-hidden />
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                      {activeTodos.map((todo: any) => (
+                        <SortableTask
+                          key={todo.id}
+                          todo={todo}
+                          handleTaskClick={handleTaskClick}
+                          handleToggleComplete={handleToggleComplete}
+                          handleToggleImportant={handleToggleImportant}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
 
                   {completedTodos.length > 0 && (
                     <div className="mb-3">
