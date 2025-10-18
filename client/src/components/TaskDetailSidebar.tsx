@@ -157,24 +157,6 @@ export default function TaskDetailSidebar({
     }
   };
 
-  const getCreatedTime = () => {
-    if (!task.created_at) return "";
-    try {
-      const created = new Date(task.created_at);
-      const now = new Date();
-      const diffHours = Math.floor(
-        (now.getTime() - created.getTime()) / (1000 * 60 * 60)
-      );
-
-      if (diffHours < 1) return "Created just now";
-      if (diffHours < 24) return `Created ${diffHours} hours ago`;
-      const diffDays = Math.floor(diffHours / 24);
-      return `Created ${diffDays} days ago`;
-    } catch {
-      return "";
-    }
-  };
-
   const formatDateOnly = (dateString?: string) => {
     if (!dateString) return "";
     try {
@@ -193,10 +175,7 @@ export default function TaskDetailSidebar({
       className="fixed inset-0 z-50 overflow-hidden"
       suppressHydrationWarning
     >
-      <div
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-white/45" onClick={onClose} />
 
       <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col">
         {/* Header */}
