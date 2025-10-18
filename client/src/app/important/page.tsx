@@ -157,11 +157,13 @@ export default function Important() {
       <Sidebar />
       <div className="flex-1 min-h-screen">
         <section className="relative w-full">
-          <div className="w-full min-h-screen bg-gradient-to-b from-pink-300 to-pink-100 text-pink-600 relative">
+          <div className="w-full min-h-screen bg-gradient-to-b from-pink-300 to-pink-100 relative">
             <div className="px-4 md:px-8">
               <div className="p-4 max-w-4xl mx-auto flex items-center gap-3">
                 <StarOutline className="w-6 h-6 text-pink-600" />
-                <h1 className="text-2xl font-semibold">Important</h1>
+                <h1 className="text-2xl font-semibold text-pink-600">
+                  Important
+                </h1>
               </div>
             </div>
             <div className="px-4">
@@ -337,7 +339,7 @@ export default function Important() {
 
           <div className="-mt-20 px-4 md:px-8 z-10">
             <div className="p-4 max-w-4xl mx-auto">
-              <TaskInput />
+              <TaskInput defaultIsImportant={true} />
             </div>
           </div>
         </section>

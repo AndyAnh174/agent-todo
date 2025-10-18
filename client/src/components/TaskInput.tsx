@@ -2,7 +2,11 @@
 
 import { useState, useRef, useEffect } from "react";
 
-export default function TaskInput() {
+interface TaskInputProps {
+  defaultIsImportant?: boolean;
+}
+
+export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -66,6 +70,9 @@ export default function TaskInput() {
 
               // default due_time to now so newly created todos appear in "Today"
               const payload: any = { title };
+              if (typeof defaultIsImportant === "boolean") {
+                payload.is_important = defaultIsImportant;
+              }
               if (!payload.due_time)
                 payload.due_time = new Date().toISOString();
 
