@@ -44,6 +44,12 @@ export default function TaskDetailSidebar({
   // due date picker state (declare early so hooks order is stable)
   const [showDuePicker, setShowDuePicker] = useState(false);
   const [duePickerDate, setDuePickerDate] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string, ms = 2500) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), ms);
+  };
 
   useEffect(() => {
     if (task) {
@@ -92,6 +98,9 @@ export default function TaskDetailSidebar({
       const updatedTask = await res.json();
       onUpdate(updatedTask);
       setIsEditing(false);
+      try {
+        showToast("success!");
+      } catch {}
     } catch (err) {
       console.error("Error updating task:", err);
       alert("Cannot connect to backend.");
@@ -155,6 +164,9 @@ export default function TaskDetailSidebar({
     setEditedTask(optimistic);
     try {
       onUpdate(optimistic);
+      try {
+        showToast("success!");
+      } catch {}
     } catch (e) {
       // parent may not expect optimistic update, continue
     }
@@ -199,6 +211,10 @@ export default function TaskDetailSidebar({
       const updated = await res.json();
       setEditedTask(updated);
       onUpdate(updated);
+      // show success toast
+      try {
+        showToast("Success!");
+      } catch {}
     } catch (err) {
       console.error("Add to My Day error:", err);
       alert("Cannot connect to backend.");
@@ -227,6 +243,9 @@ export default function TaskDetailSidebar({
     setEditedTask(optimistic);
     try {
       onUpdate(optimistic);
+      try {
+        showToast("success!");
+      } catch {}
     } catch (e) {}
 
     try {
@@ -269,6 +288,9 @@ export default function TaskDetailSidebar({
       onUpdate(updated);
       setShowDuePicker(false);
       setDuePickerDate(null);
+      try {
+        showToast("success!");
+      } catch {}
     } catch (err) {
       console.error("Set due date error:", err);
       alert("Cannot connect to backend.");
@@ -313,6 +335,14 @@ export default function TaskDetailSidebar({
       <div className="absolute inset-0 bg-white/45" onClick={onClose} />
 
       <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col">
+        {/* Toast */}
+        {toastMessage && (
+          <div className="absolute left-1/2 transform -translate-x-1/2 top-4 z-50">
+            <div className="bg-green-100 text-green-800 px-4 py-2 rounded shadow">
+              {toastMessage}
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between p-3 border-b">
           <h2 className="text-base font-medium text-gray-900">Task Details</h2>
@@ -391,13 +421,13 @@ export default function TaskDetailSidebar({
                 e.stopPropagation();
                 void handleAddToMyDay();
               }}
-              className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"
+              className="w-full hover:bg-gray-200 flex items-center gap-2 p-2 rounded"
             >
               <SunIcon className="w-4 h-4 text-gray-400" />
               <span className="text-xs text-gray-700">Add to My Day</span>
             </button>
 
-            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+            <div className="w-full hover:bg-gray-200 flex items-center gap-2 p-2 rounded cursor-pointer">
               <ClockIcon className="w-4 h-4 text-gray-400" />
               <span className="text-xs text-gray-700">Remind me</span>
             </div>
@@ -421,7 +451,7 @@ export default function TaskDetailSidebar({
                     }
                     setShowDuePicker(true);
                   }}
-                  className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"
+                  className="w-full hover:bg-gray-200 flex items-center gap-2 p-2 rounded"
                 >
                   <CalendarIcon className="w-4 h-4 text-gray-400" />
                   <span className="text-xs text-gray-700">Add due date</span>
