@@ -8,6 +8,7 @@ from .routers import tags as tags_router
 from .routers import notifications as notifications_router
 from .routers import user_preferences as preferences_router
 from .routers import automation_rules as automation_router
+from .routers import agent as agent_router
 
 
 def create_app() -> FastAPI:
@@ -35,6 +36,7 @@ def create_app() -> FastAPI:
     app.include_router(notifications_router.router)
     app.include_router(preferences_router.router)
     app.include_router(automation_router.router)
+    app.include_router(agent_router.router)
 
     return app
 

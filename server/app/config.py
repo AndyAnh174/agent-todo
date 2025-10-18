@@ -20,8 +20,20 @@ class Settings:
     smtp_from_email: str = ""
     
     # Redis Configuration
-    redis_url: str = "redis://localhost:6379/0"
-    celery_broker_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://redis:6379/0"
+    celery_broker_url: str = "redis://redis:6379/0"
+    
+    # Ollama Configuration
+    ollama_host: str = "http://localhost:11434"
+    ollama_model: str = "qwen3:4b"
+    
+    # BGE-M3 Embedding API Configuration
+    bge3_api_url: str = "https://embed.andyanh.id.vn/embed"
+    
+    # Qdrant Configuration
+    qdrant_host: str = "qdrant"
+    qdrant_port: int = 6333
+    qdrant_collection: str = "todo_embeddings"
 
 
 def load_settings() -> Settings:
@@ -39,6 +51,12 @@ def load_settings() -> Settings:
         smtp_from_email=os.getenv("SMTP_FROM_EMAIL", ""),
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         celery_broker_url=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
+        ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+        ollama_model=os.getenv("OLLAMA_MODEL", "qwen3:4b"),
+        bge3_api_url=os.getenv("BGE3_API_URL", "https://embed.andyanh.id.vn/embed"),
+        qdrant_host=os.getenv("QDRANT_HOST", "localhost"),
+        qdrant_port=int(os.getenv("QDRANT_PORT", "6333")),
+        qdrant_collection=os.getenv("QDRANT_COLLECTION", "todo_embeddings"),
     )
 
 

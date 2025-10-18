@@ -34,7 +34,7 @@ def send_notification_email(self, notification_id: str, user_email: str):
             return False
 
         # Send email
-        success = await email_service.send_email(
+        success = email_service.send_email(
             to_email=user_email,
             subject=notification.subject,
             content=notification.content

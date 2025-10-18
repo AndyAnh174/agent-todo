@@ -9,6 +9,7 @@ from ..models.todo import Todo
 from ..schemas.todos import TodoCompletePatch, TodoCreate, TodoOut, TodoUpdate
 from ..services.automation_engine import AutomationEngine
 from ..services.smart_logic_engine import get_smart_logic_engine
+from ..tasks.embedding_tasks import create_todo_embedding_task, update_todo_embedding_task, delete_todo_embedding_task
 
 
 router = APIRouter(prefix="/api/v1", tags=["todos"])
@@ -100,6 +101,9 @@ def create_todo(payload: TodoCreate, db: Session = Depends(db_session), user=Dep
     }
     automation_engine.trigger_automation("on_todo_created", context)
     
+    # Trigger embedding generation
+    create_todo_embedding_task.delay(str(todo.id))
+    
     return todo
 
 
@@ -131,6 +135,10 @@ def update_todo(todo_id: str, payload: TodoUpdate, db: Session = Depends(db_sess
     db.add(todo)
     db.commit()
     db.refresh(todo)
+    
+    # Trigger embedding update
+    update_todo_embedding_task.delay(str(todo.id))
+    
     return todo
 
 
@@ -139,6 +147,10 @@ def delete_todo(todo_id: str, db: Session = Depends(db_session), user=Depends(ge
     todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
+    
+    # Trigger embedding deletion
+    delete_todo_embedding_task.delay(str(todo.id))
+    
     db.delete(todo)
     db.commit()
     return None
@@ -153,6 +165,10 @@ def complete_todo(todo_id: str, payload: TodoCompletePatch, db: Session = Depend
     db.add(todo)
     db.commit()
     db.refresh(todo)
+    
+    # Trigger embedding update for completion status change
+    update_todo_embedding_task.delay(str(todo.id))
+    
     return todo
 
 

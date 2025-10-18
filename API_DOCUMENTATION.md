@@ -438,6 +438,128 @@ GET /health
 
 ---
 
+## 🤖 **AI Agent APIs**
+
+### **1. Chat với Agent**
+```http
+POST /api/v1/agent/chat
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "message": "Trong tuần này lịch của tui như nào?",
+  "session_id": "user_123_session_1"
+}
+```
+
+**Response:**
+```json
+{
+  "response": "Tuần này bạn có 3 việc quan trọng:\n• Họp với khách hàng ABC (Thứ 2, 14:00)\n• Báo cáo tháng (Thứ 4, 17:00)",
+  "session_id": "user_123_session_1",
+  "user_id": "user_123",
+  "timestamp": "2025-01-18T10:30:00Z"
+}
+```
+
+### **2. Semantic Search**
+```http
+GET /api/v1/agent/search?query=họp&limit=5
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "results": [
+    {
+      "todo_id": "todo_123",
+      "content": "Họp với khách hàng ABC",
+      "similarity": 0.95,
+      "metadata": {
+        "title": "Họp với khách hàng ABC",
+        "due_time": "2025-01-20T14:00:00",
+        "is_important": true
+      }
+    }
+  ],
+  "query": "họp",
+  "total": 1
+}
+```
+
+### **3. Tạo Embeddings cho User**
+```http
+POST /api/v1/agent/embed-all
+Content-Type: application/json
+Authorization: Bearer <token>
+
+{
+  "user_id": "user_123",
+  "limit": 100
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Embedding generation started",
+  "task_id": "celery_task_123",
+  "user_id": "user_123",
+  "limit": 100
+}
+```
+
+### **4. Quản lý Session**
+```http
+# Xóa conversation history
+DELETE /api/v1/agent/session/{session_id}
+Authorization: Bearer <token>
+
+# Lấy summary
+GET /api/v1/agent/session/{session_id}/summary
+Authorization: Bearer <token>
+
+# Lấy active sessions
+GET /api/v1/agent/sessions
+Authorization: Bearer <token>
+```
+
+### **5. Health Check**
+```http
+GET /api/v1/agent/health
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "components": {
+    "vector_service": true,
+    "memory_service": true,
+    "embedding_api": true
+  },
+  "message": "Health check completed"
+}
+```
+
+### **6. Embedding Management**
+```http
+# Tạo embedding cho todo
+POST /api/v1/agent/todo/{todo_id}/embed
+Authorization: Bearer <token>
+
+# Cập nhật embedding
+PUT /api/v1/agent/todo/{todo_id}/embed
+Authorization: Bearer <token>
+
+# Xóa embedding
+DELETE /api/v1/agent/todo/{todo_id}/embed
+Authorization: Bearer <token>
+```
+
+---
+
 ## 📊 **Response Status Codes**
 
 - **200** - Success
