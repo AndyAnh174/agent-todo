@@ -63,10 +63,22 @@ export default function Planned() {
       // always prepend created todos so users see them immediately in Planned
       if (created) setTodos((t) => [created, ...t]);
     }
+
+    function onUpdated(e: any) {
+      const updated = e?.detail;
+      if (updated) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo.id === updated.id ? updated : todo))
+        );
+      }
+    }
+
     window.addEventListener("todo:created", onCreated as EventListener);
+    window.addEventListener("todo:updated", onUpdated as EventListener);
     return () => {
       mounted = false;
       window.removeEventListener("todo:created", onCreated as EventListener);
+      window.removeEventListener("todo:updated", onUpdated as EventListener);
     };
   }, []);
 

@@ -40,10 +40,22 @@ export default function Important() {
       const created = e?.detail;
       if (created && created.is_important) setTodos((t) => [created, ...t]);
     }
+
+    function onUpdated(e: any) {
+      const updated = e?.detail;
+      if (updated) {
+        setTodos((prevTodos) =>
+          prevTodos.map((todo) => (todo.id === updated.id ? updated : todo))
+        );
+      }
+    }
+
     window.addEventListener("todo:created", onCreated as EventListener);
+    window.addEventListener("todo:updated", onUpdated as EventListener);
     return () => {
       mounted = false;
       window.removeEventListener("todo:created", onCreated as EventListener);
+      window.removeEventListener("todo:updated", onUpdated as EventListener);
     };
   }, []);
 
