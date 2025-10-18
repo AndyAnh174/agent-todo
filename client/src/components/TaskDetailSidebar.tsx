@@ -42,7 +42,7 @@ export default function TaskDetailSidebar({
   onDelete 
 }: TaskDetailSidebarProps) {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
+  const [isEditing, setIsEditing] = useState(true);
 
   useEffect(() => {
     if (task) {
@@ -63,8 +63,9 @@ export default function TaskDetailSidebar({
         return;
       }
 
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-      
+      const backend =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
       const res = await fetch(`${backend}/api/v1/todos/${editedTask.id}`, {
         method: "PUT",
         headers: {
@@ -105,8 +106,9 @@ export default function TaskDetailSidebar({
         return;
       }
 
-      const backend = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
-      
+      const backend =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
       const res = await fetch(`${backend}/api/v1/todos/${task.id}`, {
         method: "DELETE",
         headers: {
@@ -160,8 +162,10 @@ export default function TaskDetailSidebar({
     try {
       const created = new Date(task.created_at);
       const now = new Date();
-      const diffHours = Math.floor((now.getTime() - created.getTime()) / (1000 * 60 * 60));
-      
+      const diffHours = Math.floor(
+        (now.getTime() - created.getTime()) / (1000 * 60 * 60)
+      );
+
       if (diffHours < 1) return "Created just now";
       if (diffHours < 24) return `Created ${diffHours} hours ago`;
       const diffDays = Math.floor(diffHours / 24);
@@ -171,120 +175,137 @@ export default function TaskDetailSidebar({
     }
   };
 
+  const formatDateOnly = (dateString?: string) => {
+    if (!dateString) return "";
+    try {
+      return new Date(dateString).toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return "";
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden" suppressHydrationWarning>
-      <div className="absolute inset-0 bg-black bg-opacity-50" onClick={onClose} />
-      
-      <div className="absolute right-0 top-0 h-full w-96 bg-white shadow-xl">
+    <div
+      className="fixed inset-0 z-50 overflow-hidden"
+      suppressHydrationWarning
+    >
+      <div
+        className="absolute inset-0 bg-black bg-opacity-50"
+        onClick={onClose}
+      />
+
+      <div className="absolute right-0 top-0 h-full w-80 bg-white shadow-xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold text-gray-900">Task Details</h2>
+        <div className="flex items-center justify-between p-3 border-b">
+          <h2 className="text-base font-medium text-gray-900">Task Details</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full"
+            className="p-1 hover:bg-gray-100 rounded-full"
           >
-            <XMarkIcon className="w-5 h-5" />
+            <XMarkIcon className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3 overflow-y-auto flex-1">
           {/* Task Title and Actions */}
           <div className="flex items-start gap-3">
             <button
               onClick={toggleCompleted}
-              className={`w-6 h-6 rounded-full border-2 flex items-center justify-center mt-1 ${
-                editedTask?.is_completed 
-                  ? "bg-blue-600 border-blue-600 text-white" 
+              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-1 ${
+                editedTask?.is_completed
+                  ? "bg-blue-600 border-blue-600 text-white"
                   : "border-gray-300"
               }`}
             >
               {editedTask?.is_completed && (
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="w-3 h-3"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </button>
-            
+
             <div className="flex-1">
               {isEditing ? (
                 <input
                   type="text"
                   value={editedTask?.title || ""}
-                  onChange={(e) => setEditedTask(prev => prev ? { ...prev, title: e.target.value } : null)}
-                  className="w-full text-lg font-medium border-none outline-none bg-transparent"
+                  onChange={(e) =>
+                    setEditedTask((prev) =>
+                      prev ? { ...prev, title: e.target.value } : null
+                    )
+                  }
+                  className="w-full text-sm font-medium border-none outline-none bg-transparent"
                   autoFocus
                 />
               ) : (
-                <h3 className="text-lg font-medium text-gray-900">{task.title}</h3>
+                <h3 className="text-sm font-medium text-gray-900">
+                  {task.title}
+                </h3>
               )}
             </div>
-            
+
             <button
               onClick={toggleImportant}
               className="p-1 hover:bg-gray-100 rounded"
             >
               {editedTask?.is_important ? (
-                <StarSolidIcon className="w-5 h-5 text-yellow-500" />
+                <StarSolidIcon className="w-4 h-4 text-yellow-500" />
               ) : (
-                <StarIcon className="w-5 h-5 text-gray-400" />
+                <StarIcon className="w-4 h-4 text-gray-400" />
               )}
             </button>
           </div>
 
-          {/* Add Step */}
-          <div className="flex items-center gap-2 text-blue-600 hover:text-blue-700 cursor-pointer">
-            <div className="w-6 h-6 flex items-center justify-center">
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <span className="text-sm">Add step</span>
-          </div>
-
           {/* Task Options */}
           <div className="space-y-2">
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <SunIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-700">Add to My Day</span>
+            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+              <SunIcon className="w-4 h-4 text-gray-400" />
+              <span className="text-xs text-gray-700">Add to My Day</span>
             </div>
-            
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <ClockIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-700">Remind me</span>
+
+            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+              <ClockIcon className="w-4 h-4 text-gray-400" />
+              <span className="text-xs text-gray-700">Remind me</span>
             </div>
-            
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <CalendarIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-700">Add due date</span>
-            </div>
-            
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <ArrowPathIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-700">Repeat</span>
-            </div>
-            
-            <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <PaperClipIcon className="w-5 h-5 text-gray-400" />
-              <span className="text-sm text-gray-700">Add file</span>
+
+            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+              <CalendarIcon className="w-4 h-4 text-gray-400" />
+              <span className="text-xs text-gray-700">Add due date</span>
             </div>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-xs font-medium text-gray-700 mb-2">
               Add note
             </label>
             {isEditing ? (
               <textarea
                 value={editedTask?.description || ""}
-                onChange={(e) => setEditedTask(prev => prev ? { ...prev, description: e.target.value } : null)}
-                className="w-full p-3 border border-gray-300 rounded-lg resize-none"
+                onChange={(e) =>
+                  setEditedTask((prev) =>
+                    prev ? { ...prev, description: e.target.value } : null
+                  )
+                }
+                className="w-full p-2 border border-gray-300 rounded-lg resize-none"
                 rows={3}
                 placeholder="Add a note..."
               />
             ) : (
-              <div className="w-full p-3 border border-gray-300 rounded-lg min-h-[80px] text-gray-500">
+              <div className="w-full p-2 border border-gray-300 rounded-lg min-h-[64px] text-gray-500">
                 {task.description || "Add a note..."}
               </div>
             )}
@@ -303,44 +324,28 @@ export default function TaskDetailSidebar({
           )}
 
           {/* Action Buttons */}
-          <div className="flex gap-2 pt-4">
-            {isEditing ? (
-              <>
-                <button
-                  onClick={handleSave}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={() => setIsEditing(false)}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Cancel
-                </button>
-              </>
-            ) : (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Edit
-              </button>
-            )}
+          <div className="flex gap-2 pt-3">
+            <button
+              onClick={handleSave}
+              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+            >
+              Save
+            </button>
+
+            <button
+              onClick={handleDelete}
+              className="p-1 text-red-600 hover:bg-red-50 rounded"
+            >
+              <TrashIcon className="w-4 h-4" />
+            </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-gray-50 flex items-center justify-between">
-          <div className="text-xs text-gray-500">
-            {getCreatedTime()}
+        <div className="p-4 border-t bg-gray-50 flex items-center justify-center">
+          <div className="text-sm text-gray-700">
+            {formatDateOnly(task.created_at)}
           </div>
-          <button
-            onClick={handleDelete}
-            className="p-2 text-red-600 hover:bg-red-50 rounded"
-          >
-            <TrashIcon className="w-5 h-5" />
-          </button>
         </div>
       </div>
     </div>
