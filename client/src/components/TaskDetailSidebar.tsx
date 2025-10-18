@@ -41,6 +41,9 @@ export default function TaskDetailSidebar({
 }: TaskDetailSidebarProps) {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
   const [isEditing, setIsEditing] = useState(true);
+  // due date picker state (declare early so hooks order is stable)
+  const [showDuePicker, setShowDuePicker] = useState(false);
+  const [duePickerDate, setDuePickerDate] = useState<string | null>(null);
 
   useEffect(() => {
     if (task) {
@@ -138,6 +141,139 @@ export default function TaskDetailSidebar({
   const toggleCompleted = () => {
     if (editedTask) {
       setEditedTask({ ...editedTask, is_completed: !editedTask.is_completed });
+    }
+  };
+
+  const handleAddToMyDay = async () => {
+    if (!editedTask) return;
+
+    const prev = { ...editedTask };
+    const nowIso = new Date().toISOString();
+    const optimistic = { ...editedTask, due_time: nowIso };
+
+    // optimistic update locally and inform parent
+    setEditedTask(optimistic);
+    try {
+      onUpdate(optimistic);
+    } catch (e) {
+      // parent may not expect optimistic update, continue
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to update task.");
+        // rollback
+        setEditedTask(prev);
+        onUpdate(prev);
+        return;
+      }
+
+      const backend =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+      const res = await fetch(`${backend}/api/v1/todos/${editedTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: editedTask.title,
+          description: editedTask.description,
+          due_time: nowIso,
+          is_important: editedTask.is_important,
+          is_completed: editedTask.is_completed,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Failed to add to My Day");
+        // rollback
+        setEditedTask(prev);
+        onUpdate(prev);
+        return;
+      }
+
+      const updated = await res.json();
+      setEditedTask(updated);
+      onUpdate(updated);
+    } catch (err) {
+      console.error("Add to My Day error:", err);
+      alert("Cannot connect to backend.");
+      // rollback
+      setEditedTask(prev);
+      onUpdate(prev);
+    }
+  };
+
+  const handleSetDueDate = async () => {
+    if (!editedTask || !duePickerDate) return;
+
+    const prev = { ...editedTask };
+    // Interpret the selected date as local midnight (so it's that day)
+    const selected = new Date(duePickerDate);
+    const iso = new Date(
+      selected.getFullYear(),
+      selected.getMonth(),
+      selected.getDate(),
+      0,
+      0,
+      0
+    ).toISOString();
+
+    const optimistic = { ...editedTask, due_time: iso };
+    setEditedTask(optimistic);
+    try {
+      onUpdate(optimistic);
+    } catch (e) {}
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Please log in to update task.");
+        setEditedTask(prev);
+        onUpdate(prev);
+        return;
+      }
+
+      const backend =
+        process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+
+      const res = await fetch(`${backend}/api/v1/todos/${editedTask.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: editedTask.title,
+          description: editedTask.description,
+          due_time: iso,
+          is_important: editedTask.is_important,
+          is_completed: editedTask.is_completed,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Failed to set due date");
+        setEditedTask(prev);
+        onUpdate(prev);
+        return;
+      }
+
+      const updated = await res.json();
+      setEditedTask(updated);
+      onUpdate(updated);
+      setShowDuePicker(false);
+      setDuePickerDate(null);
+    } catch (err) {
+      console.error("Set due date error:", err);
+      alert("Cannot connect to backend.");
+      setEditedTask(prev);
+      onUpdate(prev);
     }
   };
 
@@ -249,19 +385,80 @@ export default function TaskDetailSidebar({
 
           {/* Task Options */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                void handleAddToMyDay();
+              }}
+              className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"
+            >
               <SunIcon className="w-4 h-4 text-gray-400" />
               <span className="text-xs text-gray-700">Add to My Day</span>
-            </div>
+            </button>
 
             <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
               <ClockIcon className="w-4 h-4 text-gray-400" />
               <span className="text-xs text-gray-700">Remind me</span>
             </div>
 
-            <div className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded cursor-pointer">
-              <CalendarIcon className="w-4 h-4 text-gray-400" />
-              <span className="text-xs text-gray-700">Add due date</span>
+            <div>
+              {!showDuePicker ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // prefill with existing due date if present
+                    if (editedTask?.due_time) {
+                      try {
+                        const d = new Date(editedTask.due_time);
+                        const isoDate = d.toISOString().slice(0, 10);
+                        setDuePickerDate(isoDate);
+                      } catch {}
+                    } else {
+                      const todayIso = new Date().toISOString().slice(0, 10);
+                      setDuePickerDate(todayIso);
+                    }
+                    setShowDuePicker(true);
+                  }}
+                  className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded"
+                >
+                  <CalendarIcon className="w-4 h-4 text-gray-400" />
+                  <span className="text-xs text-gray-700">Add due date</span>
+                </button>
+              ) : (
+                <div className="p-2 bg-white border rounded space-y-2">
+                  <input
+                    type="date"
+                    value={duePickerDate || ""}
+                    onChange={(e) => setDuePickerDate(e.target.value)}
+                    className="text-sm p-1 border rounded"
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void handleSetDueDate();
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                    >
+                      Set
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowDuePicker(false);
+                        setDuePickerDate(null);
+                      }}
+                      className="px-3 py-1 bg-gray-200 rounded text-sm"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
