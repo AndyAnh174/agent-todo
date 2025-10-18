@@ -10,9 +10,16 @@ import {
   ArrowRightOnRectangleIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onClose?: () => void;
+  showCloseButton?: boolean;
+}
+
+export default function Sidebar(props: SidebarProps = {}) {
+  const { onClose, showCloseButton = false } = props;
   const [user, setUser] = useState<{
     full_name?: string;
     email?: string;
@@ -39,6 +46,18 @@ export default function Sidebar() {
 
   return (
     <aside className="w-64 bg-white min-h-screen p-4 flex flex-col">
+      {/* Close button for mobile */}
+      {showCloseButton && onClose && (
+        <div className="flex justify-end pb-2 mb-2 lg:hidden border-b border-gray-300 ">
+          <button
+            onClick={onClose}
+            className="p-2 rounded-md bg-gray-200 hover:bg-gray-300"
+          >
+            <XMarkIcon className="w-6 h-6 text-gray-600 " />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-green-400 flex items-center justify-center text-white font-bold">

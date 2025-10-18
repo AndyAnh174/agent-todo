@@ -7,6 +7,7 @@ import { useMemo, useEffect, useState } from "react";
 import {
   StarIcon as StarOutline,
   ChevronDownIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 
@@ -28,6 +29,7 @@ export default function MyDay() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -199,20 +201,50 @@ export default function MyDay() {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 min-h-screen">
-        <section className="relative w-full">
-          <div className="w-full min-h-screen bg-gradient-to-b from-gray-500 to-yellow-200 text-black relative">
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-white/45 bg-opacity-50"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          {/* Sidebar */}
+          <div className="relative bg-white w-64 h-full shadow-xl">
+            <Sidebar
+              onClose={() => setIsMobileSidebarOpen(false)}
+              showCloseButton={true}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 min-h-screen overflow-hidden">
+        <section className="relative w-full h-screen">
+          <div className="w-full h-full bg-gradient-to-b from-gray-500 to-yellow-200 text-black relative overflow-hidden">
             <div className="px-4">
               <div className="p-4 max-w-4xl mx-auto">
-                <h1 className="text-3xl font-semibold text-white">My Day</h1>
+                <button
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-md hover:bg-gray-600 hover:bg-opacity-20 transition-colors"
+                >
+                  <Bars3Icon className="w-6 h-6 text-white" />
+                </button>
+                <div className="flex items-center gap-3">
+                  <h1 className="text-3xl font-semibold text-white">My Day</h1>
+                </div>
                 <p className="mt-2 text-[16px] text-white">{today}</p>
               </div>
             </div>
 
             <div className="px-4">
               <div className="p-4 max-w-4xl mx-auto">
-                <div className="space-y-2 max-h-[70vh] lg:max-h-[65vh] overflow-y-auto custom-scroll pr-2">
+                <div className="space-y-2 h-[70vh] md:h-[55vh] lg:h-[65vh] overflow-y-auto custom-scroll pr-2">
                   {activeTodos.map((todo: any) => (
                     <div
                       key={todo.id}
