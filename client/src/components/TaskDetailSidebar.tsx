@@ -520,7 +520,7 @@ export default function TaskDetailSidebar({
           </div>
         )}
         {/* Header */}
-        <div className="flex items-center justify-between p-3 border-b">
+        <div className="flex items-center justify-between p-3 border-b border-gray-200">
           <h2 className="text-base font-medium text-gray-900">Task Details</h2>
           <button
             onClick={onClose}
@@ -647,19 +647,19 @@ export default function TaskDetailSidebar({
                   <span className="text-xs text-gray-700">Add due date</span>
                 </button>
               ) : (
-                <div className="p-2 bg-white border rounded space-y-2">
+                <div className="p-2 bg-gray-200 rounded space-y-2 shadow-md">
                   <div className="flex items-center gap-2">
                     <input
                       type="date"
                       value={duePickerDate || ""}
                       onChange={(e) => setDuePickerDate(e.target.value)}
-                      className="text-sm p-1 border rounded"
+                      className="text-sm p-1 bg-white rounded"
                     />
                     <input
                       type="time"
                       value={duePickerTime || ""}
                       onChange={(e) => setDuePickerTime(e.target.value)}
-                      className="text-sm p-1 border rounded"
+                      className="text-sm p-1 bg-white rounded"
                     />
                   </div>
                   <div className="flex gap-2">
@@ -669,7 +669,7 @@ export default function TaskDetailSidebar({
                         e.stopPropagation();
                         void handleSetDueDate();
                       }}
-                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm"
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
                     >
                       Set
                     </button>
@@ -681,7 +681,7 @@ export default function TaskDetailSidebar({
                         setDuePickerDate(null);
                         setDuePickerTime(null);
                       }}
-                      className="px-3 py-1 bg-gray-200 rounded text-sm"
+                      className="px-3 py-1 bg-white rounded text-sm hover:bg-gray-100"
                     >
                       Cancel
                     </button>
@@ -727,12 +727,13 @@ export default function TaskDetailSidebar({
 
           {/* Due Date */}
           {editedTask?.due_time && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Due date
+            <div className="mt-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Due Date
               </label>
-              <div className="text-sm text-gray-600">
-                {formatDate(editedTask.due_time)}
+              <div className="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 border border-gray-200 px-3 py-2 rounded-lg w-fit">
+                <CalendarIcon className="w-4 h-4 text-blue-500" />
+                <span>{formatDate(editedTask.due_time)}</span>
               </div>
             </div>
           )}
@@ -779,7 +780,7 @@ export default function TaskDetailSidebar({
         )}
 
         {/* Footer */}
-        <div className="p-4 border-t bg-gray-50 flex items-center justify-center">
+        <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-center">
           <div className="text-sm text-gray-700">
             {formatDateOnly(task.created_at)}
           </div>
