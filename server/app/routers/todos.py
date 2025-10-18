@@ -1,4 +1,5 @@
 from typing import List, Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
@@ -6,12 +7,36 @@ from sqlalchemy.orm import Session
 from ..dependencies import db_session, get_current_user
 from ..models.todo import Todo
 from ..schemas.todos import TodoCompletePatch, TodoCreate, TodoOut, TodoUpdate
+from ..services.automation_engine import AutomationEngine
+from ..services.smart_logic_engine import get_smart_logic_engine
+from ..tasks.embedding_tasks import create_todo_embedding_task, update_todo_embedding_task, delete_todo_embedding_task
 
 
-router = APIRouter(prefix="/api/v1/todos", tags=["todos"])
+router = APIRouter(prefix="/api/v1", tags=["todos"])
 
 
-@router.get("/", response_model=List[TodoOut])
+@router.get("/todos/smart/insights")
+def get_smart_insights(db: Session = Depends(db_session), user=Depends(get_current_user)):
+    """Lấy insights thông minh về productivity của user"""
+    smart_engine = get_smart_logic_engine(db)
+    insights = smart_engine.get_smart_insights(user.id)
+    return insights
+
+
+@router.post("/todos/smart/analyze")
+def analyze_todo_content(
+    title: str,
+    description: str = "",
+    db: Session = Depends(db_session),
+    user=Depends(get_current_user)
+):
+    """Phân tích nội dung todo và đưa ra gợi ý thông minh"""
+    smart_engine = get_smart_logic_engine(db)
+    analysis = smart_engine.analyze_todo_content(title, description)
+    return analysis
+
+
+@router.get("/todos", response_model=List[TodoOut])
 def list_todos(
     db: Session = Depends(db_session),
     user=Depends(get_current_user),
@@ -38,23 +63,51 @@ def list_todos(
     return items
 
 
-@router.post("/", response_model=TodoOut, status_code=201)
+@router.post("/todos", response_model=TodoOut, status_code=201)
 def create_todo(payload: TodoCreate, db: Session = Depends(db_session), user=Depends(get_current_user)):
+    # Áp dụng Smart Logic Engine để tự động phân tích và gợi ý TRƯỚC khi tạo todo
+    smart_engine = get_smart_logic_engine(db)
+    analysis = smart_engine.analyze_todo_content(payload.title, payload.description or "")
+    
+    # Tạo todo với smart suggestions
     todo = Todo(
         title=payload.title,
         description=payload.description,
-        due_time=payload.due_time,
-        group_id=payload.group_id,
-        is_important=bool(payload.is_important),
+        due_time=payload.due_time or analysis["suggested_deadline"],
+        group_id=payload.group_id or analysis["suggested_group"],
+        is_important=(analysis["suggested_priority"] == "high"),  # Chỉ dùng smart analysis
         user_id=user.id,
     )
+    
+    # Tạo tags thông minh nếu có
+    if analysis["suggested_tags"]:
+        tag_ids = smart_engine.create_smart_tags(analysis["suggested_tags"], user.id)
+        # TODO: Link tags to todo (cần implement todo_tag relationship)
+    
     db.add(todo)
     db.commit()
     db.refresh(todo)
+    
+    # Trigger automation for todo creation
+    automation_engine = AutomationEngine(db)
+    context = {
+        "todo_id": todo.id,
+        "todo_title": todo.title,
+        "todo_description": todo.description or "",
+        "due_time": todo.due_time,
+        "is_important": todo.is_important,
+        "todo_tags": analysis["suggested_tags"],  # Sử dụng suggested tags
+        "smart_analysis": analysis  # Thêm analysis vào context
+    }
+    automation_engine.trigger_automation("on_todo_created", context)
+    
+    # Trigger embedding generation
+    create_todo_embedding_task.delay(str(todo.id))
+    
     return todo
 
 
-@router.get("/{todo_id}", response_model=TodoOut)
+@router.get("/todos/{todo_id}", response_model=TodoOut)
 def get_todo(todo_id: str, db: Session = Depends(db_session), user=Depends(get_current_user)):
     todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
     if not todo:
@@ -62,7 +115,7 @@ def get_todo(todo_id: str, db: Session = Depends(db_session), user=Depends(get_c
     return todo
 
 
-@router.put("/{todo_id}", response_model=TodoOut)
+@router.put("/todos/{todo_id}", response_model=TodoOut)
 def update_todo(todo_id: str, payload: TodoUpdate, db: Session = Depends(db_session), user=Depends(get_current_user)):
     todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
     if not todo:
@@ -82,20 +135,28 @@ def update_todo(todo_id: str, payload: TodoUpdate, db: Session = Depends(db_sess
     db.add(todo)
     db.commit()
     db.refresh(todo)
+    
+    # Trigger embedding update
+    update_todo_embedding_task.delay(str(todo.id))
+    
     return todo
 
 
-@router.delete("/{todo_id}", status_code=204)
+@router.delete("/todos/{todo_id}", status_code=204)
 def delete_todo(todo_id: str, db: Session = Depends(db_session), user=Depends(get_current_user)):
     todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
     if not todo:
         raise HTTPException(status_code=404, detail="Todo not found")
+    
+    # Trigger embedding deletion
+    delete_todo_embedding_task.delay(str(todo.id))
+    
     db.delete(todo)
     db.commit()
     return None
 
 
-@router.patch("/{todo_id}/complete", response_model=TodoOut)
+@router.patch("/todos/{todo_id}/complete", response_model=TodoOut)
 def complete_todo(todo_id: str, payload: TodoCompletePatch, db: Session = Depends(db_session), user=Depends(get_current_user)):
     todo = db.query(Todo).filter(Todo.id == todo_id, Todo.user_id == user.id).first()
     if not todo:
@@ -104,6 +165,10 @@ def complete_todo(todo_id: str, payload: TodoCompletePatch, db: Session = Depend
     db.add(todo)
     db.commit()
     db.refresh(todo)
+    
+    # Trigger embedding update for completion status change
+    update_todo_embedding_task.delay(str(todo.id))
+    
     return todo
 
 
