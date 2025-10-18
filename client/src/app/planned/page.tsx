@@ -245,12 +245,12 @@ export default function Planned() {
                       });
 
                       const renderItem = (todo: any) => (
-                        <div
-                          key={todo.id}
+                      <div
+                        key={todo.id}
                           className="bg-white rounded-md shadow-sm p-2 flex items-center justify-between cursor-pointer hover:bg-gray-50"
                           onClick={() => handleTaskClick(todo)}
-                        >
-                          <div className="flex items-start gap-3">
+                      >
+                        <div className="flex items-start gap-3">
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -276,7 +276,7 @@ export default function Planned() {
                                 </svg>
                               )}
                             </div>
-                            <div>
+                          <div>
                               <div
                                 className={`font-medium ${
                                   todo.is_completed
@@ -284,11 +284,11 @@ export default function Planned() {
                                     : "text-black"
                                 }`}
                               >
-                                {todo.title}
-                              </div>
-                              <div className="text-xs text-gray-500">Tasks</div>
+                              {todo.title}
                             </div>
+                            <div className="text-xs text-gray-500">Tasks</div>
                           </div>
+                        </div>
                           <div
                             onClick={(e) => {
                               e.stopPropagation();
@@ -444,7 +444,7 @@ export default function Planned() {
                                   {completedTodos.map(renderItem)}
                                 </div>
                               )}
-                            </div>
+                      </div>
                           )}
                         </>
                       );

@@ -1,9 +1,15 @@
 #!/bin/sh
 
+# Wait for Redis
+echo "Waiting for Redis..."
+until redis-cli -h redis ping; do
+  echo "Redis not ready, retrying..."
+  sleep 2
+done
+
 # Wait for DB
 if [ -n "$DATABASE_URL" ]; then
   echo "Waiting for database..."
-  # naive wait loop
   ATTEMPTS=0
   until python - <<'PY'
 import os
@@ -31,9 +37,5 @@ PY
   done
 fi
 
-# Run migrations
-alembic upgrade head
-
-# Start server
-exec uvicorn server.app.main:app --host 0.0.0.0 --port ${APP_PORT:-8000}
-
+# Start Celery worker
+exec celery -A app.celery_app worker -l info

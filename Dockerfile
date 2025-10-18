@@ -16,7 +16,9 @@ COPY . .
 
 # Normalize line endings for entrypoint (Windows CRLF -> Unix LF) and make executable
 RUN sed -i 's/\r$//' server/scripts/entrypoint.sh \
-    && chmod +x server/scripts/entrypoint.sh
+    && sed -i 's/\r$//' server/scripts/celery_entrypoint_fixed.sh \
+    && chmod +x server/scripts/entrypoint.sh \
+    && chmod +x server/scripts/celery_entrypoint_fixed.sh
 
 EXPOSE 8000
 
