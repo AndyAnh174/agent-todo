@@ -57,7 +57,11 @@ export default function Task() {
   };
 
   const handleUpdateTask = (updatedTask: any) => {
-    setTodos((prevTodos) => prevTodos.map((todo) => (todo.id === updatedTask.id ? updatedTask : todo)));
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) => (todo.id === updatedTask.id ? updatedTask : todo))
+    );
+    // keep the sidebar focused on the updated task
+    setSelectedTask(updatedTask);
   };
 
   const handleDeleteTask = (taskId: string) => {

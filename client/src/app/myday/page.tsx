@@ -64,12 +64,13 @@ export default function MyDay() {
     };
   }, []);
 
-  const isCreatedToday = (todo: any) => {
+  // My Day should show todos whose due date falls on today (due_time)
+  const isDueToday = (todo: any) => {
     if (!todo) return false;
-    const created = todo.created_at || todo.createdAt || todo.created;
-    if (!created) return false;
+    const due = todo.due_time || todo.dueTime || todo.due;
+    if (!due) return false;
     try {
-      const d = new Date(created);
+      const d = new Date(due);
       const now = new Date();
       return (
         d.getFullYear() === now.getFullYear() &&
@@ -81,7 +82,7 @@ export default function MyDay() {
     }
   };
 
-  const todaysTodos = todos.filter(isCreatedToday);
+  const todaysTodos = todos.filter(isDueToday);
   const completedTodos = todaysTodos.filter((t) => t.is_completed);
   const activeTodos = todaysTodos.filter((t) => !t.is_completed);
 
@@ -99,6 +100,8 @@ export default function MyDay() {
     setTodos((prevTodos) =>
       prevTodos.map((todo) => (todo.id === updatedTask.id ? updatedTask : todo))
     );
+    // keep the sidebar focused on the updated task
+    setSelectedTask(updatedTask);
   };
 
   const handleDeleteTask = (taskId: string) => {

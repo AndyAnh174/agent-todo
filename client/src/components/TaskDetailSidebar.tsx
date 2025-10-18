@@ -1,15 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { 
-  XMarkIcon, 
-  StarIcon, 
-  SunIcon, 
-  ClockIcon, 
-  CalendarIcon, 
-  ArrowPathIcon, 
-  PaperClipIcon,
-  TrashIcon
+import {
+  XMarkIcon,
+  StarIcon,
+  SunIcon,
+  ClockIcon,
+  CalendarIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 
@@ -34,12 +32,12 @@ interface TaskDetailSidebarProps {
   onDelete: (taskId: string) => void;
 }
 
-export default function TaskDetailSidebar({ 
-  task, 
-  isOpen, 
-  onClose, 
-  onUpdate, 
-  onDelete 
+export default function TaskDetailSidebar({
+  task,
+  isOpen,
+  onClose,
+  onUpdate,
+  onDelete,
 }: TaskDetailSidebarProps) {
   const [editedTask, setEditedTask] = useState<Task | null>(null);
   const [isEditing, setIsEditing] = useState(true);
@@ -47,7 +45,8 @@ export default function TaskDetailSidebar({
   useEffect(() => {
     if (task) {
       setEditedTask({ ...task });
-      setIsEditing(false);
+      // open directly in edit mode
+      setIsEditing(true);
     }
   }, [task]);
 
@@ -302,20 +301,21 @@ export default function TaskDetailSidebar({
             </div>
           )}
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 pt-3">
+          {/* Action Buttons: Save (left) and Delete (right) */}
+          <div className="flex items-center justify-between pt-3">
             <button
               onClick={handleSave}
-              className="px-3 py-1 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm"
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium shadow-md"
             >
               Save
             </button>
 
             <button
               onClick={handleDelete}
-              className="p-1 text-red-600 hover:bg-red-50 rounded"
+              className="flex items-center gap-2 px-4 py-2 text-white text-sm bg-red-600 hover:bg-red-700 rounded-md font-medium shadow-sm"
+              aria-label="Delete task"
             >
-              <TrashIcon className="w-4 h-4" />
+              Delete
             </button>
           </div>
         </div>
