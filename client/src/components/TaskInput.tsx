@@ -53,14 +53,21 @@ export default function TaskInput() {
               return;
             }
 
-            // URL backend - luôn đọc từ .env để dễ deploy
+            // prefer NEXT_PUBLIC_API_BASE_URL but keep legacy NEXT_PUBLIC_BACKEND_URL as fallback
             const backend =
-              process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
+              process.env.NEXT_PUBLIC_API_BASE_URL ||
+              process.env.NEXT_PUBLIC_BACKEND_URL ||
+              "http://localhost:8000";
 
             try {
               console.log("TaskInput: creating todo", title);
 
               (inputRef.current as HTMLInputElement).disabled = true;
+
+              // default due_time to now so newly created todos appear in "Today"
+              const payload: any = { title };
+              if (!payload.due_time)
+                payload.due_time = new Date().toISOString();
 
               const res = await fetch(`${backend}/api/v1/todos`, {
                 method: "POST",
@@ -68,7 +75,7 @@ export default function TaskInput() {
                   "Content-Type": "application/json",
                   Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ title }),
+                body: JSON.stringify(payload),
               });
 
               if (!res.ok) {
