@@ -105,6 +105,84 @@ export default function MyDay() {
     setTodos((prevTodos) => prevTodos.filter((todo) => todo.id !== taskId));
   };
 
+  // Optimistic toggle for completion with server persistence and rollback on failure
+  const handleToggleComplete = async (todo: any) => {
+    const prev = todos;
+    const nextCompleted = !todo.is_completed;
+    // optimistic
+    setTodos((prevTodos) =>
+      prevTodos.map((t) =>
+        t.id === todo.id ? { ...t, is_completed: nextCompleted } : t
+      )
+    );
+
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      console.warn("No auth token found; completion not persisted");
+      return;
+    }
+
+    try {
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+      const res = await fetch(`${base}/api/v1/todos/${todo.id}/complete`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_completed: nextCompleted }),
+      });
+      if (!res.ok) throw new Error(`Persist complete failed: ${res.status}`);
+      const updated = await res.json();
+      setTodos((prevTodos) =>
+        prevTodos.map((t) => (t.id === updated.id ? updated : t))
+      );
+    } catch (err) {
+      console.error(err);
+      // rollback
+      setTodos(prev);
+    }
+  };
+
+  // Optimistic toggle for importance with server persistence and rollback on failure
+  const handleToggleImportant = async (todo: any) => {
+    const prev = todos;
+    const nextImportant = !todo.is_important;
+    setTodos((prevTodos) =>
+      prevTodos.map((t) =>
+        t.id === todo.id ? { ...t, is_important: nextImportant } : t
+      )
+    );
+
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      console.warn("No auth token found; importance not persisted");
+      return;
+    }
+
+    try {
+      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+      const res = await fetch(`${base}/api/v1/todos/${todo.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ is_important: nextImportant }),
+      });
+      if (!res.ok) throw new Error(`Persist important failed: ${res.status}`);
+      const updated = await res.json();
+      setTodos((prevTodos) =>
+        prevTodos.map((t) => (t.id === updated.id ? updated : t))
+      );
+    } catch (err) {
+      console.error(err);
+      setTodos(prev);
+    }
+  };
+
   return (
     <div className="flex">
       <Sidebar />
@@ -131,13 +209,7 @@ export default function MyDay() {
                         <div
                           onClick={(e) => {
                             e.stopPropagation();
-                            setTodos((prev) =>
-                              prev.map((t) =>
-                                t.id === todo.id
-                                  ? { ...t, is_completed: !t.is_completed }
-                                  : t
-                              )
-                            );
+                            void handleToggleComplete(todo);
                           }}
                           className={`w-5 h-5 border rounded-full mt-1 flex items-center justify-center ${
                             todo.is_completed
@@ -175,13 +247,7 @@ export default function MyDay() {
                       <div
                         onClick={(e) => {
                           e.stopPropagation();
-                          setTodos((prev) =>
-                            prev.map((t) =>
-                              t.id === todo.id
-                                ? { ...t, is_important: !t.is_important }
-                                : t
-                            )
-                          );
+                          void handleToggleImportant(todo);
                         }}
                         className={`${
                           todo.is_important
@@ -231,16 +297,7 @@ export default function MyDay() {
                                 <div
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    setTodos((prev) =>
-                                      prev.map((t) =>
-                                        t.id === todo.id
-                                          ? {
-                                              ...t,
-                                              is_completed: !t.is_completed,
-                                            }
-                                          : t
-                                      )
-                                    );
+                                    void handleToggleComplete(todo);
                                   }}
                                   className={`w-5 h-5 border rounded-full mt-1 flex items-center justify-center ${
                                     todo.is_completed
@@ -280,16 +337,7 @@ export default function MyDay() {
                               <div
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setTodos((prev) =>
-                                    prev.map((t) =>
-                                      t.id === todo.id
-                                        ? {
-                                            ...t,
-                                            is_important: !t.is_important,
-                                          }
-                                        : t
-                                    )
-                                  );
+                                  void handleToggleImportant(todo);
                                 }}
                                 className={`${
                                   todo.is_important
