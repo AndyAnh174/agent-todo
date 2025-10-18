@@ -44,8 +44,9 @@ class ConversationalTodoAgent:
             ("system", """Bạn là AI assistant thông minh cho quản lý todo. 
             Bạn có thể giúp user:
             - Xem lịch trình và tìm kiếm todos
-            - Tạo todo mới với phân tích thông minh
+            - Tạo todo mới với phân tích thông minh và gán tags tự động
             - Cập nhật và quản lý todos
+            - Gán tags tự động cho todos hiện có
             - Kiểm tra thời gian rảnh
             - Đưa ra gợi ý và insights
             
@@ -164,9 +165,15 @@ class ConversationalTodoAgent:
                 self.db.commit()
                 self.db.refresh(todo)
                 
-                # Tạo tags thông minh
+                # Tạo tags thông minh và link với todo
                 if analysis["suggested_tags"]:
                     tag_ids = self.smart_engine.create_smart_tags(analysis["suggested_tags"], user_id)
+                    # Link tags với todo
+                    from ..models.tag import Tag
+                    tags = self.db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+                    todo.tags = tags
+                    self.db.commit()
+                    self.db.refresh(todo)
                 
                 result = f"Đã tạo todo '{title}' thành công!\n"
                 result += f"Phân tích thông minh:\n"
@@ -206,6 +213,47 @@ class ConversationalTodoAgent:
             except Exception as e:
                 logger.error(f"Error in update_todo_tool: {e}")
                 return f"Lỗi khi cập nhật todo: {e}"
+        
+        @tool
+        def auto_tag_todo_tool(user_id: str, todo_id: str) -> str:
+            """
+            Tự động gán tags cho todo dựa trên nội dung
+            """
+            try:
+                # Tìm todo
+                todo = self.db.query(Todo).filter(
+                    Todo.id == todo_id,
+                    Todo.user_id == user_id
+                ).first()
+                
+                if not todo:
+                    return f"Không tìm thấy todo với ID: {todo_id}"
+                
+                # Phân tích nội dung todo
+                analysis = self.smart_engine.analyze_todo_content(todo.title, todo.description or "")
+                
+                if not analysis["suggested_tags"]:
+                    return f"Không tìm thấy tags phù hợp cho todo '{todo.title}'"
+                
+                # Tạo tags thông minh
+                tag_ids = self.smart_engine.create_smart_tags(analysis["suggested_tags"], user_id)
+                
+                # Link tags với todo
+                from ..models.tag import Tag
+                tags = self.db.query(Tag).filter(Tag.id.in_(tag_ids)).all()
+                todo.tags = tags
+                self.db.commit()
+                self.db.refresh(todo)
+                
+                # Trigger embedding update
+                from ..tasks.embedding_tasks import update_todo_embedding_task
+                update_todo_embedding_task.delay(str(todo.id))
+                
+                return f"Đã gán tags tự động cho todo '{todo.title}': {', '.join(analysis['suggested_tags'])}"
+                
+            except Exception as e:
+                logger.error(f"Error in auto_tag_todo_tool: {e}")
+                return f"Lỗi khi gán tags tự động: {e}"
         
         @tool
         def check_availability_tool(user_id: str, date: str) -> str:
@@ -264,6 +312,7 @@ class ConversationalTodoAgent:
             search_todos_tool,
             create_todo_tool,
             update_todo_tool,
+            auto_tag_todo_tool,
             check_availability_tool
         ]
     

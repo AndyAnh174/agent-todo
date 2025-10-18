@@ -39,5 +39,14 @@ class Todo(Base):
     # relationships
     group: Mapped[Optional["Group"]] = relationship("Group")
     notifications = relationship("Notification", back_populates="todo")
+    
+    # Many-to-many relationship with tags through TodoTag
+    tags = relationship(
+        "Tag",
+        secondary="todo_tag",
+        primaryjoin="Todo.id == TodoTag.todo_id",
+        secondaryjoin="Tag.id == TodoTag.tag_id",
+        back_populates="todos"
+    )
 
 

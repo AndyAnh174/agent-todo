@@ -23,10 +23,20 @@ class BGE3EmbeddingService:
         Tạo embedding cho một text
         """
         try:
+            # Clean và truncate text nếu quá dài
+            if not text or not text.strip():
+                logger.warning("Empty text provided for embedding")
+                return [0.0] * self.get_embedding_dimension()
+            
+            # Truncate text nếu quá dài (BGE-M3 có giới hạn)
+            clean_text = text.strip()[:1000]  # Giới hạn 1000 ký tự
+            
             payload = {
-                "texts": [text],
+                "texts": [clean_text],
                 "max_length": self.max_length
             }
+            
+            logger.debug(f"Calling BGE3 API with text: '{clean_text[:50]}...'")
             
             response = requests.post(
                 self.api_url,
@@ -37,30 +47,55 @@ class BGE3EmbeddingService:
             
             if response.status_code == 200:
                 result = response.json()
-                return result["embeddings"][0]
+                embeddings = result.get("embeddings", [])
+                if embeddings and len(embeddings) > 0:
+                    embedding = embeddings[0]
+                    if len(embedding) == self.get_embedding_dimension():
+                        logger.debug(f"Successfully generated embedding of length {len(embedding)}")
+                        return embedding
+                    else:
+                        logger.error(f"Invalid embedding dimension: {len(embedding)}, expected {self.get_embedding_dimension()}")
+                        return [0.0] * self.get_embedding_dimension()
+                else:
+                    logger.error("No embeddings returned from API")
+                    return [0.0] * self.get_embedding_dimension()
             else:
                 logger.error(f"BGE3 API error: {response.status_code} - {response.text}")
-                raise Exception(f"Embedding API error: {response.status_code}")
+                # Return zero vector as fallback
+                return [0.0] * self.get_embedding_dimension()
                 
         except requests.exceptions.Timeout:
             logger.error("BGE3 API timeout")
-            raise Exception("Embedding API timeout")
+            return [0.0] * self.get_embedding_dimension()
         except requests.exceptions.RequestException as e:
             logger.error(f"BGE3 API request error: {e}")
-            raise Exception(f"Embedding API request error: {e}")
+            return [0.0] * self.get_embedding_dimension()
         except Exception as e:
             logger.error(f"BGE3 embedding error: {e}")
-            raise Exception(f"Embedding generation failed: {e}")
+            return [0.0] * self.get_embedding_dimension()
     
     def encode_batch(self, texts: List[str]) -> List[List[float]]:
         """
         Tạo embeddings cho nhiều text cùng lúc
         """
         try:
+            if not texts:
+                return []
+            
+            # Clean và truncate texts
+            clean_texts = []
+            for text in texts:
+                if text and text.strip():
+                    clean_texts.append(text.strip()[:1000])
+                else:
+                    clean_texts.append("")
+            
             payload = {
-                "texts": texts,
+                "texts": clean_texts,
                 "max_length": self.max_length
             }
+            
+            logger.debug(f"Calling BGE3 API with {len(clean_texts)} texts")
             
             response = requests.post(
                 self.api_url,
@@ -71,20 +106,33 @@ class BGE3EmbeddingService:
             
             if response.status_code == 200:
                 result = response.json()
-                return result["embeddings"]
+                embeddings = result.get("embeddings", [])
+                if embeddings:
+                    # Validate embeddings
+                    valid_embeddings = []
+                    for embedding in embeddings:
+                        if embedding and len(embedding) == self.get_embedding_dimension():
+                            valid_embeddings.append(embedding)
+                        else:
+                            valid_embeddings.append([0.0] * self.get_embedding_dimension())
+                    logger.debug(f"Successfully generated {len(valid_embeddings)} embeddings")
+                    return valid_embeddings
+                else:
+                    logger.error("No embeddings returned from API")
+                    return [[0.0] * self.get_embedding_dimension()] * len(clean_texts)
             else:
                 logger.error(f"BGE3 API error: {response.status_code} - {response.text}")
-                raise Exception(f"Embedding API error: {response.status_code}")
+                return [[0.0] * self.get_embedding_dimension()] * len(clean_texts)
                 
         except requests.exceptions.Timeout:
             logger.error("BGE3 API timeout")
-            raise Exception("Embedding API timeout")
+            return [[0.0] * self.get_embedding_dimension()] * len(texts) if texts else []
         except requests.exceptions.RequestException as e:
             logger.error(f"BGE3 API request error: {e}")
-            raise Exception(f"Embedding API request error: {e}")
+            return [[0.0] * self.get_embedding_dimension()] * len(texts) if texts else []
         except Exception as e:
             logger.error(f"BGE3 batch embedding error: {e}")
-            raise Exception(f"Batch embedding generation failed: {e}")
+            return [[0.0] * self.get_embedding_dimension()] * len(texts) if texts else []
     
     def cosine_similarity(self, vec1: List[float], vec2: List[float]) -> float:
         """
@@ -118,7 +166,7 @@ class BGE3EmbeddingService:
         """
         try:
             test_embedding = self.encode_text("test")
-            return len(test_embedding) == self.get_embedding_dimension()
+            return len(test_embedding) == self.get_embedding_dimension() and any(x != 0.0 for x in test_embedding)
         except Exception as e:
             logger.error(f"BGE3 health check failed: {e}")
             return False

@@ -43,20 +43,23 @@ async def semantic_search_todos(
     Perform a semantic search on user's todos using embeddings.
     """
     logger.info(f"Semantic search request for user {user.id}, query: '{query}'")
-    embedding_service = get_embedding_service()
     vector_service = get_vector_service()
 
-    query_embedding = embedding_service.encode_text(query)
-    if not query_embedding:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Could not generate embedding for query.")
-
-    results = vector_service.search_similar_todos(query_embedding, user.id, limit)
-    
-    return {
-        "query": query,
-        "total": len(results),
-        "results": results
-    }
+    try:
+        results = vector_service.search_similar_todos(query, str(user.id), limit)
+        
+        return {
+            "query": query,
+            "total": len(results),
+            "results": results
+        }
+    except Exception as e:
+        logger.error(f"Semantic search failed: {e}")
+        return {
+            "query": query,
+            "total": 0,
+            "results": []
+        }
 
 @router.post("/embed-all", response_model=AgentEmbedAllResponse)
 async def embed_all_user_todos(

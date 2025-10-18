@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
+from .tags import TagOut
 
 
 class TodoCreate(BaseModel):
@@ -31,8 +32,12 @@ class TodoOut(BaseModel):
     is_important: bool
     user_id: Optional[str]
     group_id: Optional[str]
+    tags: Optional[List[TagOut]] = []
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
+
+    class Config:
+        from_attributes = True
 
 
 class TodoCompletePatch(BaseModel):

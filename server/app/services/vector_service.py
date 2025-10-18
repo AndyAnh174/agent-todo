@@ -96,6 +96,11 @@ class QdrantVectorService:
             # Tạo embedding cho query
             query_embedding = self.embedding_service.encode_text(query)
             
+            # Check if query embedding is all zeros (fallback case)
+            if all(x == 0.0 for x in query_embedding):
+                logger.warning("Query embedding is all zeros, returning empty results")
+                return []
+            
             # Vector search với filter theo user_id
             search_result = self.client.search(
                 collection_name=self.collection_name,
@@ -127,7 +132,8 @@ class QdrantVectorService:
             
         except Exception as e:
             logger.error(f"Failed to search similar todos: {e}")
-            raise Exception(f"Vector search failed: {e}")
+            # Return empty results instead of raising exception
+            return []
     
     def update_todo_embedding(self, todo_id: str, content: str, metadata: Dict[str, Any]) -> str:
         """
