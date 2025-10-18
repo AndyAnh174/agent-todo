@@ -6,6 +6,7 @@ import TaskDetailSidebar from "@/components/TaskDetailSidebar";
 import {
   StarIcon as StarOutline,
   ChevronDownIcon,
+  Bars3Icon,
 } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolid } from "@heroicons/react/24/solid";
 import { useEffect, useState } from "react";
@@ -15,6 +16,7 @@ export default function Important() {
   const [selectedTask, setSelectedTask] = useState<any>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [showCompleted, setShowCompleted] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -166,21 +168,51 @@ export default function Important() {
 
   return (
     <div className="flex">
-      <Sidebar />
-      <div className="flex-1 min-h-screen">
-        <section className="relative w-full">
-          <div className="w-full min-h-screen bg-gradient-to-b from-pink-300 to-pink-100 relative">
-            <div className="px-4 md:px-8">
-              <div className="p-4 max-w-4xl mx-auto flex items-center gap-3">
-                <StarOutline className="w-6 h-6 text-pink-600" />
-                <h1 className="text-2xl font-semibold text-pink-600">
-                  Important
-                </h1>
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block">
+        <Sidebar />
+      </div>
+
+      {/* Mobile Sidebar Overlay */}
+      {isMobileSidebarOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-white/45 bg-opacity-50"
+            onClick={() => setIsMobileSidebarOpen(false)}
+          />
+          {/* Sidebar */}
+          <div className="relative bg-white w-64 h-full shadow-xl">
+            <Sidebar
+              onClose={() => setIsMobileSidebarOpen(false)}
+              showCloseButton={true}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 min-h-screen overflow-hidden">
+        <section className="relative w-full h-screen">
+          <div className="w-full h-full bg-gradient-to-b from-pink-300 to-pink-100 relative overflow-hidden">
+            <div className="px-4">
+              <div className="p-4 max-w-4xl mx-auto">
+                <button
+                  onClick={() => setIsMobileSidebarOpen(true)}
+                  className="lg:hidden p-2 rounded-md hover:bg-pink-500 hover:bg-opacity-20 transition-colors mb-2"
+                >
+                  <Bars3Icon className="w-6 h-6 text-pink-600" />
+                </button>
+                <div className="flex items-center gap-3">
+                  <StarOutline className="w-6 h-6 text-pink-600" />
+                  <h1 className="text-2xl font-semibold text-pink-600">
+                    Important
+                  </h1>
+                </div>
               </div>
             </div>
             <div className="px-4">
               <div className="p-4 max-w-4xl mx-auto">
-                <div className="space-y-2 max-h-[70vh] lg:max-h-[65vh] overflow-y-auto custom-scroll pr-2">
+                <div className="space-y-2 h-[70vh] md:h-[55vh] lg:h-[65vh] overflow-y-auto custom-scroll pr-2">
                   {activeTodos.map((todo: any) => (
                     <div
                       key={todo.id}
