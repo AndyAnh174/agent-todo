@@ -50,7 +50,13 @@ class ConversationalTodoAgent:
             - Kiểm tra thời gian rảnh
             - Đưa ra gợi ý và insights
             
-            Hãy trả lời bằng tiếng Việt và sử dụng các tools phù hợp để giúp user."""),
+            QUAN TRỌNG: 
+            - Chỉ trả lời dựa trên thông tin có trong Context được cung cấp
+            - KHÔNG được bịa ra thông tin không có trong todos của user
+            - Nếu không có thông tin liên quan, hãy nói rõ "Tôi không tìm thấy thông tin này trong todos của bạn"
+            - Luôn trả lời bằng tiếng Việt và thân thiện
+            
+            Hãy sử dụng các tools phù hợp để giúp user."""),
             MessagesPlaceholder(variable_name="chat_history"),
             ("human", "{input}")
         ])
@@ -387,10 +393,63 @@ class ConversationalTodoAgent:
             
             # Tạo embedding và lưu vào vector database
             try:
-                from ..tasks.embedding_tasks import create_todo_embedding_task
-                # Tạo embedding cho todo mới
-                create_todo_embedding_task.delay(str(todo.id))
-                logger.info(f"Created embedding task for todo {todo.id}")
+                # Trigger embedding generation
+                try:
+                    from ..tasks.embedding_tasks import create_todo_embedding_task
+                    task_result = create_todo_embedding_task.delay(str(todo.id))
+                    logger.info(f"Triggered embedding creation for todo {todo.id}, task ID: {task_result.id}")
+                    
+                    # Check if worker is available
+                    import time
+                    time.sleep(0.1)
+                    
+                    if task_result.state == 'PENDING':
+                        logger.warning(f"Celery worker not available, using fallback for todo {todo.id}")
+                        raise Exception("Celery worker not available")
+                        
+                except Exception as e:
+                    logger.error(f"Failed to trigger embedding creation: {e}")
+                    # Fallback: try to create embedding directly
+                    try:
+                        from ..services.vector_service import get_vector_service
+                        from ..services.embedding_service import get_embedding_service
+                        
+                        vector_service = get_vector_service()
+                        embedding_service = get_embedding_service()
+                        
+                        # Create embedding text
+                        embedding_text = f"{todo.title} {todo.description or ''}"
+                        embedding = embedding_service.encode_text(embedding_text)
+                        
+                        # Store in vector database
+                        # Convert due_time to Vietnam timezone for consistent display
+                        due_time_str = None
+                        if todo.due_time:
+                            import pytz
+                            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                            if todo.due_time.tzinfo is None:
+                                # If naive datetime, assume it's UTC
+                                due_time_utc = pytz.utc.localize(todo.due_time)
+                            else:
+                                # If already timezone-aware, convert to UTC first
+                                due_time_utc = todo.due_time.astimezone(pytz.utc)
+                            due_time_vn = due_time_utc.astimezone(vn_tz)
+                            due_time_str = due_time_vn.isoformat()
+                        
+                        metadata = {
+                            "user_id": str(todo.user_id),
+                            "title": todo.title,
+                            "description": todo.description or "",
+                            "due_time": due_time_str,
+                            "is_important": todo.is_important,
+                            "is_completed": todo.is_completed,
+                            "group_id": todo.group_id,
+                            "created_at": todo.created_at
+                        }
+                        vector_service.add_todo_embedding(str(todo.id), embedding_text, metadata)
+                        logger.info(f"Created embedding directly for todo {todo.id}")
+                    except Exception as direct_e:
+                        logger.error(f"Failed to create embedding directly: {direct_e}")
             except Exception as e:
                 logger.error(f"Error creating embedding task for todo {todo.id}: {e}")
                 # Không fail todo creation nếu embedding task fail
@@ -442,40 +501,112 @@ class ConversationalTodoAgent:
     
     def _get_schedule_direct(self, user_id: str, time_range: str = "week") -> str:
         """
-        Lấy lịch trình trực tiếp
+        Lấy lịch trình trực tiếp - hỗ trợ tiếng Việt
         """
         try:
-            now = datetime.now()
+            # Sử dụng timezone-aware datetime
+            import pytz
+            vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+            now = datetime.now(vn_tz)
             query = self.db.query(Todo).filter(Todo.user_id == user_id)
             
-            if time_range == "today":
-                today = now.date()
-                query = query.filter(Todo.due_time >= now.replace(hour=0, minute=0, second=0))
-                query = query.filter(Todo.due_time <= now.replace(hour=23, minute=59, second=59))
-            elif time_range == "week":
+            # Parse time_range với hỗ trợ tiếng Việt
+            time_range_lower = time_range.lower()
+            
+            if time_range_lower in ["today", "hôm nay", "ngay hom nay", "hôm nay"]:
+                today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                today_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+                query = query.filter(Todo.due_time >= today_start)
+                query = query.filter(Todo.due_time <= today_end)
+                display_range = "hôm nay"
+            elif time_range_lower in ["week", "tuần", "tuan", "tuần này", "tuan nay"]:
                 week_start = now - timedelta(days=now.weekday())
                 week_end = week_start + timedelta(days=7)
                 query = query.filter(Todo.due_time >= week_start)
                 query = query.filter(Todo.due_time <= week_end)
-            elif time_range == "month":
-                month_start = now.replace(day=1, hour=0, minute=0, second=0)
+                display_range = "tuần này"
+            elif time_range_lower in ["month", "tháng", "thang", "tháng này", "thang nay"]:
+                month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
                 if now.month == 12:
-                    month_end = now.replace(year=now.year+1, month=1, day=1)
+                    month_end = now.replace(year=now.year+1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
                 else:
-                    month_end = now.replace(month=now.month+1, day=1)
+                    month_end = now.replace(month=now.month+1, day=1, hour=0, minute=0, second=0, microsecond=0)
                 query = query.filter(Todo.due_time >= month_start)
                 query = query.filter(Todo.due_time <= month_end)
+                display_range = "tháng này"
+            elif time_range_lower in ["chiều nay", "chieu nay", "chiều", "chieu"]:
+                # Chiều nay: từ 12:00 đến 18:00
+                afternoon_start = now.replace(hour=12, minute=0, second=0, microsecond=0)
+                afternoon_end = now.replace(hour=18, minute=0, second=0, microsecond=0)
+                query = query.filter(Todo.due_time >= afternoon_start)
+                query = query.filter(Todo.due_time <= afternoon_end)
+                display_range = "chiều nay"
+            elif time_range_lower in ["sáng nay", "sang nay", "sáng", "sang"]:
+                # Sáng nay: từ 6:00 đến 12:00
+                morning_start = now.replace(hour=6, minute=0, second=0, microsecond=0)
+                morning_end = now.replace(hour=12, minute=0, second=0, microsecond=0)
+                query = query.filter(Todo.due_time >= morning_start)
+                query = query.filter(Todo.due_time <= morning_end)
+                display_range = "sáng nay"
+            elif time_range_lower in ["tối nay", "toi nay", "tối", "toi"]:
+                # Tối nay: từ 18:00 đến 23:59
+                evening_start = now.replace(hour=18, minute=0, second=0, microsecond=0)
+                evening_end = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+                query = query.filter(Todo.due_time >= evening_start)
+                query = query.filter(Todo.due_time <= evening_end)
+                display_range = "tối nay"
+            elif "/" in time_range_lower and len(time_range_lower.split("/")) == 2:
+                # Parse format "20/10" hoặc "20/10/2025"
+                try:
+                    parts = time_range_lower.split("/")
+                    day = int(parts[0])
+                    month = int(parts[1])
+                    year = now.year if len(parts) == 2 else int(parts[2])
+                    
+                    # Tạo datetime cho ngày cụ thể
+                    target_date = vn_tz.localize(datetime(year, month, day, 0, 0, 0))
+                    target_date_end = vn_tz.localize(datetime(year, month, day, 23, 59, 59))
+                    
+                    query = query.filter(Todo.due_time >= target_date)
+                    query = query.filter(Todo.due_time <= target_date_end)
+                    display_range = f"ngày {day}/{month}/{year}"
+                except (ValueError, IndexError):
+                    # Nếu parse lỗi, fallback to week
+                    week_start = now - timedelta(days=now.weekday())
+                    week_end = week_start + timedelta(days=7)
+                    query = query.filter(Todo.due_time >= week_start)
+                    query = query.filter(Todo.due_time <= week_end)
+                    display_range = "tuần này"
+            else:
+                # Default to week
+                week_start = now - timedelta(days=now.weekday())
+                week_end = week_start + timedelta(days=7)
+                query = query.filter(Todo.due_time >= week_start)
+                query = query.filter(Todo.due_time <= week_end)
+                display_range = "tuần này"
             
             todos = query.order_by(Todo.due_time.asc()).all()
             
             if not todos:
-                return f"Không có việc nào trong {time_range}"
+                return f"Không có việc nào trong {display_range}"
             
-            result = f"Lịch trình {time_range}:\n"
+            result = f"Lịch trình {display_range}:\n"
             for todo in todos:
-                due_time = todo.due_time.strftime("%d/%m/%Y %H:%M") if todo.due_time else "Chưa có thời gian"
+                if todo.due_time:
+                    # Convert to Vietnam timezone for display
+                    if todo.due_time.tzinfo is None:
+                        # If naive datetime, assume it's UTC and convert to VN time
+                        due_time_vn = pytz.utc.localize(todo.due_time).astimezone(vn_tz)
+                    else:
+                        # If already timezone-aware, convert to VN time
+                        due_time_vn = todo.due_time.astimezone(vn_tz)
+                    due_time_str = due_time_vn.strftime("%d/%m/%Y %H:%M")
+                else:
+                    due_time_str = "Chưa có thời gian"
+                
                 priority = "🔥" if todo.is_important else "📝"
-                result += f"{priority} {todo.title} - {due_time}\n"
+                status = "✅" if todo.is_completed else "⏳"
+                result += f"{status} {priority} {todo.title} - {due_time_str}\n"
             
             return result
             
@@ -901,25 +1032,110 @@ class ConversationalTodoAgent:
                 actual_message = message.replace('[SLASH_COMMAND]', '').strip()
                 agent_response = self._handle_slash_command(actual_message)
             else:
-                # Gọi LLM trực tiếp cho normal chat
-                try:
-                    # Format messages với prompt template
-                    formatted_messages = self.prompt.format_messages(
-                        input=message,
-                        chat_history=messages[:-1]  # Exclude current message
-                    )
+                # Check for schedule-related questions (chỉ khi hỏi về thời gian cụ thể)
+                message_lower = message.lower()
+                schedule_keywords = [
+                    "chiều nay", "chieu nay", "chiều", "chieu",
+                    "sáng nay", "sang nay", "sáng", "sang", 
+                    "tối nay", "toi nay", "tối", "toi",
+                    "hôm nay", "hom nay", "ngày hôm nay", "ngay hom nay",
+                    "tuần này", "tuan nay", "tuần", "tuan",
+                    "tháng này", "thang nay", "tháng", "thang",
+                    "schedule", "today", "week", "month"
+                ]
+                
+                # Chỉ detect schedule nếu có từ khóa thời gian + từ khóa lịch trình
+                time_keywords = ["chiều nay", "chieu nay", "chiều", "chieu", "sáng nay", "sang nay", "sáng", "sang", "tối nay", "toi nay", "tối", "toi", "hôm nay", "hom nay", "ngày hôm nay", "ngay hom nay", "tuần này", "tuan nay", "tuần", "tuan", "tháng này", "thang nay", "tháng", "thang", "schedule", "today", "week", "month"]
+                schedule_indicators = ["có việc gì", "co viec gi", "việc gì", "viec gi", "lịch trình", "lich trinh", "lịch", "lich", "có gì", "co gi"]
+                
+                # Check for date format like "20/10", "30/10", etc.
+                import re
+                date_pattern = r'\b\d{1,2}/\d{1,2}(?:/\d{4})?\b'
+                has_date_format = bool(re.search(date_pattern, message_lower))
+                
+                is_schedule_question = (any(time_word in message_lower for time_word in time_keywords) and any(indicator in message_lower for indicator in schedule_indicators)) or (has_date_format and any(indicator in message_lower for indicator in schedule_indicators))
+                
+                if is_schedule_question:
+                    # Extract time range from message
+                    time_range = "week"  # default
                     
-                    # Gọi LLM
-                    response = self.llm.invoke(formatted_messages)
-                    # Ollama trả về string, không phải object có .content
-                    if hasattr(response, 'content'):
-                        agent_response = response.content
-                    else:
-                        agent_response = str(response)
+                    # Check for date format first
+                    if has_date_format:
+                        # Extract date from message
+                        date_match = re.search(date_pattern, message_lower)
+                        if date_match:
+                            time_range = date_match.group()
+                    elif any(word in message_lower for word in ["chiều nay", "chieu nay", "chiều", "chieu"]):
+                        time_range = "chiều nay"
+                    elif any(word in message_lower for word in ["sáng nay", "sang nay", "sáng", "sang"]):
+                        time_range = "sáng nay"
+                    elif any(word in message_lower for word in ["tối nay", "toi nay", "tối", "toi"]):
+                        time_range = "tối nay"
+                    elif any(word in message_lower for word in ["hôm nay", "hom nay", "ngày hôm nay", "ngay hom nay", "today"]):
+                        time_range = "hôm nay"
+                    elif any(word in message_lower for word in ["tuần này", "tuan nay", "tuần", "tuan", "week"]):
+                        time_range = "tuần này"
+                    elif any(word in message_lower for word in ["tháng này", "thang nay", "tháng", "thang", "month"]):
+                        time_range = "tháng này"
                     
-                except Exception as e:
-                    logger.error(f"Error calling LLM: {e}")
-                    agent_response = f"Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn: {str(e)}"
+                    # Get schedule directly
+                    agent_response = self._get_schedule_direct(str(self.user_id), time_range)
+                else:
+                    # Use vector search for RAG - tìm todos liên quan trước
+                    try:
+                        # Vector search để tìm todos liên quan
+                        similar_todos = self.vector_service.search_similar_todos(message, str(self.user_id), limit=3)
+                        
+                        if similar_todos:
+                            # Có todos liên quan, tạo context cho LLM
+                            context = "Dựa trên todos của bạn:\n"
+                            for i, todo in enumerate(similar_todos, 1):
+                                context += f"{i}. {todo.get('title', 'Unknown')} - {todo.get('description', 'No description')}\n"
+                            
+                            # Gọi LLM với context
+                            enhanced_message = f"Context: {context}\n\nUser question: {message}"
+                            
+                            try:
+                                formatted_messages = self.prompt.format_messages(
+                                    input=enhanced_message,
+                                    chat_history=messages[:-1]
+                                )
+                                
+                                response = self.llm.invoke(formatted_messages)
+                                if hasattr(response, 'content'):
+                                    agent_response = response.content
+                                else:
+                                    agent_response = str(response)
+                                    
+                                # Thêm disclaimer nếu cần
+                                if "không biết" in agent_response.lower() or "không có" in agent_response.lower():
+                                    agent_response += "\n\n💡 *Lưu ý: Thông tin này dựa trên todos hiện có của bạn.*"
+                                    
+                            except Exception as e:
+                                logger.error(f"Error calling LLM with context: {e}")
+                                agent_response = f"Dựa trên todos của bạn:\n" + "\n".join([f"• {todo.get('title', 'Unknown')}" for todo in similar_todos])
+                        else:
+                            # Không có todos liên quan, trả về thông báo rõ ràng
+                            agent_response = "Tôi không tìm thấy thông tin liên quan trong todos của bạn. Bạn có thể:\n• Tạo todo mới với `/todo`\n• Tìm kiếm với `/search`\n• Xem lịch trình với `/schedule`"
+                            
+                    except Exception as e:
+                        logger.error(f"Error in vector search: {e}")
+                        # Fallback to LLM nếu vector search fail
+                        try:
+                            formatted_messages = self.prompt.format_messages(
+                                input=message,
+                                chat_history=messages[:-1]
+                            )
+                            
+                            response = self.llm.invoke(formatted_messages)
+                            if hasattr(response, 'content'):
+                                agent_response = response.content
+                            else:
+                                agent_response = str(response)
+                                
+                        except Exception as llm_e:
+                            logger.error(f"Error calling LLM: {llm_e}")
+                            agent_response = f"Xin lỗi, tôi gặp lỗi khi xử lý yêu cầu của bạn: {str(llm_e)}"
             
             # Lưu assistant response
             self.memory_service.add_assistant_message(session_id, agent_response)

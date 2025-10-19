@@ -24,7 +24,7 @@ class Settings:
     celery_broker_url: str = "redis://redis:6379/0"
     
     # Ollama Configuration
-    ollama_host: str = "http://localhost:11434"
+    ollama_host: str = "http://222.253.80.30:11434"
     ollama_model: str = "llama3.1:8b"
     
     # BGE-M3 Embedding API Configuration
@@ -51,7 +51,7 @@ def load_settings() -> Settings:
         smtp_from_email=os.getenv("SMTP_FROM_EMAIL", ""),
         redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
         celery_broker_url=os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0"),
-        ollama_host=os.getenv("OLLAMA_HOST", "http://localhost:11434"),
+        ollama_host=os.getenv("OLLAMA_HOST", "http://222.253.80.30:11434"),
         ollama_model=os.getenv("OLLAMA_MODEL", "llama3.1:8b"),
         bge3_api_url=os.getenv("BGE3_API_URL", "https://embed.andyanh.id.vn/embed"),
         qdrant_host=os.getenv("QDRANT_HOST", "localhost"),

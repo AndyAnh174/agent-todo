@@ -128,7 +128,63 @@ def create_todo(payload: TodoCreate, db: Session = Depends(db_session), user=Dep
     automation_engine.trigger_automation("on_todo_created", context)
     
     # Trigger embedding generation
-    create_todo_embedding_task.delay(str(todo.id))
+    try:
+        # Try to queue task
+        task_result = create_todo_embedding_task.delay(str(todo.id))
+        logger.info(f"Triggered embedding creation for todo {todo.id}, task ID: {task_result.id}")
+        
+        # Check if worker is available by checking task state after a short delay
+        import time
+        time.sleep(0.1)  # Short delay to let task be processed
+        
+        # If task is still PENDING after delay, worker is not available
+        if task_result.state == 'PENDING':
+            logger.warning(f"Celery worker not available, using fallback for todo {todo.id}")
+            raise Exception("Celery worker not available")
+            
+    except Exception as e:
+        logger.error(f"Failed to trigger embedding creation: {e}")
+        # Fallback: try to create embedding directly
+        try:
+            from ..services.vector_service import get_vector_service
+            from ..services.embedding_service import get_embedding_service
+            
+            vector_service = get_vector_service()
+            embedding_service = get_embedding_service()
+            
+            # Create embedding text
+            embedding_text = f"{todo.title} {todo.description or ''}"
+            embedding = embedding_service.encode_text(embedding_text)
+            
+            # Store in vector database
+            # Convert due_time to Vietnam timezone for consistent display
+            due_time_str = None
+            if todo.due_time:
+                import pytz
+                vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+                if todo.due_time.tzinfo is None:
+                    # If naive datetime, assume it's UTC
+                    due_time_utc = pytz.utc.localize(todo.due_time)
+                else:
+                    # If already timezone-aware, convert to UTC first
+                    due_time_utc = todo.due_time.astimezone(pytz.utc)
+                due_time_vn = due_time_utc.astimezone(vn_tz)
+                due_time_str = due_time_vn.isoformat()
+            
+            metadata = {
+                "user_id": str(todo.user_id),
+                "title": todo.title,
+                "description": todo.description or "",
+                "due_time": due_time_str,
+                "is_important": todo.is_important,
+                "is_completed": todo.is_completed,
+                "group_id": todo.group_id,
+                "created_at": todo.created_at
+            }
+            vector_service.add_todo_embedding(str(todo.id), embedding_text, metadata)
+            logger.info(f"Created embedding directly for todo {todo.id}")
+        except Exception as direct_e:
+            logger.error(f"Failed to create embedding directly: {direct_e}")
     
     return todo
 

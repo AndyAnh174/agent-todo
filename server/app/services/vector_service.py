@@ -121,10 +121,12 @@ class QdrantVectorService:
             for hit in search_result:
                 results.append({
                     "todo_id": hit.payload.get("todo_id"),
+                    "title": hit.payload.get("title", "Unknown"),
                     "content": hit.payload.get("content"),
+                    "score": hit.score,
                     "similarity": hit.score,
                     "metadata": {k: v for k, v in hit.payload.items() 
-                               if k not in ["todo_id", "content"]}
+                               if k not in ["todo_id", "content", "title"]}
                 })
             
             logger.info(f"Found {len(results)} similar todos for query: {query[:50]}...")
