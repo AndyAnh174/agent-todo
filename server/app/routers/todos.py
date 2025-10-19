@@ -9,7 +9,7 @@ from ..dependencies import db_session, get_current_user
 from ..models.todo import Todo
 from ..models.tag import Tag
 from ..models.todo_tag import TodoTag
-from ..schemas.todos import TodoCompletePatch, TodoCreate, TodoOut, TodoUpdate
+from ..schemas.todos import TodoCompletePatch, TodoCreate, TodoOut, TodoUpdate, TodoOrderUpdate
 from ..services.automation_engine import AutomationEngine
 from ..services.smart_logic_engine import get_smart_logic_engine
 from ..tasks.embedding_tasks import create_todo_embedding_task, update_todo_embedding_task, delete_todo_embedding_task
@@ -280,12 +280,14 @@ def get_todo_tags(todo_id: str, db: Session = Depends(db_session), user=Depends(
 
 @router.put("/todos/order")
 def update_todos_order(
-    todo_ids: List[str],
+    order_data: TodoOrderUpdate,
     db: Session = Depends(db_session),
     user=Depends(get_current_user)
 ):
     """Update the order of todos"""
     try:
+        todo_ids = order_data.todo_ids
+        
         # Verify all todos belong to the user
         todos = db.query(Todo).filter(
             Todo.id.in_(todo_ids),

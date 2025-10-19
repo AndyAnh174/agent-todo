@@ -89,8 +89,9 @@ export default function Planned() {
   // helper to try loading without Authorization header (dev/testing)
   const tryLoadWithoutAuth = async () => {
     try {
-      const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-      const res = await fetch(`${base}/api/v1/todos?limit=50`, {
+        const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+        const url = base ? `${base}/api/v1/todos?limit=50` : `/api/v1/todos?limit=50`;
+        const res = await fetch(url, {
         cache: "no-store",
       });
       if (!res.ok) {

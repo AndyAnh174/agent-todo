@@ -11,10 +11,26 @@ import {
 import { apiService } from '@/services/api';
 import { checkServerHealth, checkAuth } from '@/utils/healthCheck';
 
-// Simple markdown renderer
+// Simple markdown renderer with colored slash commands
 const renderMarkdown = (text: string) => {
-  return text
-    // Bold text
+  // First, protect existing HTML tags
+  const htmlTags: string[] = [];
+  let protectedText = text.replace(/<[^>]*>/g, (match) => {
+    htmlTags.push(match);
+    return `__HTML_TAG_${htmlTags.length - 1}__`;
+  });
+  
+  // Process markdown
+  let processedText = protectedText
+    // Slash commands with colors (must be before bold processing)
+    .replace(/\*\*📝 \/todo\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">📝 /todo</span>')
+    .replace(/\*\*🔍 \/search\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-mono">🔍 /search</span>')
+    .replace(/\*\*📅 \/schedule\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-mono">📅 /schedule</span>')
+    .replace(/\*\*🏷️ \/tags\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-mono">🏷️ /tags</span>')
+    .replace(/\*\*⏰ \/availability\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-mono">⏰ /availability</span>')
+    .replace(/\*\*✏️ \/update\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-mono">✏️ /update</span>')
+    .replace(/\*\*❓ \/help\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono">❓ /help</span>')
+    // Bold text (for other bold content)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     // Italic text
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -28,6 +44,13 @@ const renderMarkdown = (text: string) => {
     .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
     .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>')
     .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>');
+  
+  // Restore HTML tags
+  htmlTags.forEach((tag, index) => {
+    processedText = processedText.replace(`__HTML_TAG_${index}__`, tag);
+  });
+  
+  return processedText;
 };
 
 interface ChatMessage {
@@ -61,7 +84,7 @@ export default function ChatInterface({ isOpen, onClose, className = '' }: ChatI
        setMessages([{
          id: 'welcome',
          type: 'agent',
-         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-mono">📝 /todo</span> - Tạo todo mới\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-mono">🔍 /search</span> - Tìm kiếm todos\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-mono">📅 /schedule</span> - Xem lịch trình\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-100 text-orange-700 rounded text-xs font-mono">🏷️ /tags</span> - Gán tags tự động\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-mono">⏰ /availability</span> - Kiểm tra thời gian rảnh\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded text-xs font-mono">✏️ /update</span> - Cập nhật todo\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-mono">❓ /help</span> - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
+         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• **📝 /todo** - Tạo todo mới\n• **🔍 /search** - Tìm kiếm todos\n• **📅 /schedule** - Xem lịch trình\n• **🏷️ /tags** - Gán tags tự động\n• **⏰ /availability** - Kiểm tra thời gian rảnh\n• **✏️ /update** - Cập nhật todo\n• **❓ /help** - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
          timestamp: new Date().toISOString()
        }]);
     }
@@ -206,7 +229,7 @@ export default function ChatInterface({ isOpen, onClose, className = '' }: ChatI
        setMessages([{
          id: 'welcome',
          type: 'agent',
-         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• `/todo` - Tạo todo mới\n• `/search` - Tìm kiếm todos\n• `/schedule` - Xem lịch trình\n• `/tags` - Gán tags tự động\n• `/availability` - Kiểm tra thời gian rảnh\n• `/update` - Cập nhật todo\n• `/help` - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
+         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• **📝 /todo** - Tạo todo mới\n• **🔍 /search** - Tìm kiếm todos\n• **📅 /schedule** - Xem lịch trình\n• **🏷️ /tags** - Gán tags tự động\n• **⏰ /availability** - Kiểm tra thời gian rảnh\n• **✏️ /update** - Cập nhật todo\n• **❓ /help** - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
          timestamp: new Date().toISOString()
        }]);
       setError(null);

@@ -179,7 +179,7 @@ export default function MyDay() {
       if (!token) return;
       try {
         const base = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-        const url = `${base}/api/v1/todos?limit=50`;
+        const url = base ? `${base}/api/v1/todos?limit=50` : `/api/v1/todos?limit=50`;
         const res = await fetch(url, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store",
@@ -376,7 +376,7 @@ export default function MyDay() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(todoIds),
+        body: JSON.stringify({ todo_ids: todoIds }),
       });
 
       if (!res.ok) {

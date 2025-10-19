@@ -45,3 +45,7 @@ class TodoCompletePatch(BaseModel):
     is_completed: bool
 
 
+class TodoOrderUpdate(BaseModel):
+    todo_ids: List[str]
+
+

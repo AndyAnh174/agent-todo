@@ -13,10 +13,26 @@ import {
 import { apiService } from '@/services/api';
 import { checkServerHealth, checkAuth } from '@/utils/healthCheck';
 
-// Simple markdown renderer
+// Simple markdown renderer with colored slash commands
 const renderMarkdown = (text: string) => {
-  return text
-    // Bold text
+  // First, protect existing HTML tags
+  const htmlTags: string[] = [];
+  let protectedText = text.replace(/<[^>]*>/g, (match) => {
+    htmlTags.push(match);
+    return `__HTML_TAG_${htmlTags.length - 1}__`;
+  });
+  
+  // Process markdown
+  let processedText = protectedText
+    // Slash commands with colors (must be before bold processing)
+    .replace(/\*\*📝 \/todo\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-200 rounded text-xs font-mono border border-blue-400/30">📝 /todo</span>')
+    .replace(/\*\*🔍 \/search\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-200 rounded text-xs font-mono border border-green-400/30">🔍 /search</span>')
+    .replace(/\*\*📅 \/schedule\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-200 rounded text-xs font-mono border border-purple-400/30">📅 /schedule</span>')
+    .replace(/\*\*🏷️ \/tags\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-200 rounded text-xs font-mono border border-orange-400/30">🏷️ /tags</span>')
+    .replace(/\*\*⏰ \/availability\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-200 rounded text-xs font-mono border border-red-400/30">⏰ /availability</span>')
+    .replace(/\*\*✏️ \/update\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-500/20 text-indigo-200 rounded text-xs font-mono border border-indigo-400/30">✏️ /update</span>')
+    .replace(/\*\*❓ \/help\*\*/g, '<span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-500/20 text-gray-200 rounded text-xs font-mono border border-gray-400/30">❓ /help</span>')
+    // Bold text (for other bold content)
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     // Italic text
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
@@ -30,6 +46,13 @@ const renderMarkdown = (text: string) => {
     .replace(/^### (.*$)/gm, '<h3 class="text-lg font-semibold mt-4 mb-2">$1</h3>')
     .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mt-4 mb-2">$1</h2>')
     .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>');
+  
+  // Restore HTML tags
+  htmlTags.forEach((tag, index) => {
+    processedText = processedText.replace(`__HTML_TAG_${index}__`, tag);
+  });
+  
+  return processedText;
 };
 
 interface ChatMessage {
@@ -66,7 +89,7 @@ export default function ChatPage() {
        setMessages([{
          id: 'welcome',
          type: 'agent',
-         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-200 rounded text-xs font-mono border border-blue-400/30">📝 /todo</span> - Tạo todo mới\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-200 rounded text-xs font-mono border border-green-400/30">🔍 /search</span> - Tìm kiếm todos\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-200 rounded text-xs font-mono border border-purple-400/30">📅 /schedule</span> - Xem lịch trình\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-200 rounded text-xs font-mono border border-orange-400/30">🏷️ /tags</span> - Gán tags tự động\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-200 rounded text-xs font-mono border border-red-400/30">⏰ /availability</span> - Kiểm tra thời gian rảnh\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-500/20 text-indigo-200 rounded text-xs font-mono border border-indigo-400/30">✏️ /update</span> - Cập nhật todo\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-500/20 text-gray-200 rounded text-xs font-mono border border-gray-400/30">❓ /help</span> - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
+         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• **📝 /todo** - Tạo todo mới\n• **🔍 /search** - Tìm kiếm todos\n• **📅 /schedule** - Xem lịch trình\n• **🏷️ /tags** - Gán tags tự động\n• **⏰ /availability** - Kiểm tra thời gian rảnh\n• **✏️ /update** - Cập nhật todo\n• **❓ /help** - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
          timestamp: new Date().toISOString()
        }]);
     }
@@ -211,7 +234,7 @@ export default function ChatPage() {
        setMessages([{
          id: 'welcome',
          type: 'agent',
-         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-200 rounded text-xs font-mono border border-blue-400/30">📝 /todo</span> - Tạo todo mới\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-200 rounded text-xs font-mono border border-green-400/30">🔍 /search</span> - Tìm kiếm todos\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-purple-500/20 text-purple-200 rounded text-xs font-mono border border-purple-400/30">📅 /schedule</span> - Xem lịch trình\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-200 rounded text-xs font-mono border border-orange-400/30">🏷️ /tags</span> - Gán tags tự động\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-200 rounded text-xs font-mono border border-red-400/30">⏰ /availability</span> - Kiểm tra thời gian rảnh\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-indigo-500/20 text-indigo-200 rounded text-xs font-mono border border-indigo-400/30">✏️ /update</span> - Cập nhật todo\n• <span class="inline-flex items-center gap-1 px-2 py-1 bg-gray-500/20 text-gray-200 rounded text-xs font-mono border border-gray-400/30">❓ /help</span> - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
+         content: 'Xin chào! Tôi là AI Assistant của bạn. Tôi có thể giúp bạn:\n\n• Quản lý và tạo todo mới\n• Tìm kiếm tasks theo ngữ cảnh\n• Đưa ra gợi ý thông minh\n• Phân tích năng suất\n• Trả lời câu hỏi về công việc\n\n**Slash Commands:**\n• **📝 /todo** - Tạo todo mới\n• **🔍 /search** - Tìm kiếm todos\n• **📅 /schedule** - Xem lịch trình\n• **🏷️ /tags** - Gán tags tự động\n• **⏰ /availability** - Kiểm tra thời gian rảnh\n• **✏️ /update** - Cập nhật todo\n• **❓ /help** - Xem hướng dẫn\n\nBạn cần hỗ trợ gì?',
          timestamp: new Date().toISOString()
        }]);
       setError(null);
