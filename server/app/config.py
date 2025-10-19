@@ -34,6 +34,9 @@ class Settings:
     qdrant_host: str = "qdrant"
     qdrant_port: int = 6333
     qdrant_collection: str = "todo_embeddings"
+    
+    # Gemini AI Configuration
+    gemini_api_key: str = ""
 
 
 def load_settings() -> Settings:
@@ -57,6 +60,7 @@ def load_settings() -> Settings:
         qdrant_host=os.getenv("QDRANT_HOST", "localhost"),
         qdrant_port=int(os.getenv("QDRANT_PORT", "6333")),
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "todo_embeddings"),
+        gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
     )
 
 

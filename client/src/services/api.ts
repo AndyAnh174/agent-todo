@@ -26,6 +26,13 @@ import {
   SearchFilters,
   ApiResponse
 } from '@/types';
+import { 
+  AnalysisRequest, 
+  AnalysisResponse, 
+  ExportRequest, 
+  ExportResponse, 
+  AnalysisHistoryResponse 
+} from '@/types/analysis';
 
 class ApiService {
   private baseUrl: string;
@@ -405,6 +412,43 @@ class ApiService {
     });
 
     return this.handleResponse<UserPreference>(response);
+  }
+
+  // Analysis methods
+  async generateAnalysis(request: AnalysisRequest): Promise<AnalysisResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/analysis/generate`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    return this.handleResponse<AnalysisResponse>(response);
+  }
+
+  async getLatestAnalysis(timeRange: string = 'week'): Promise<AnalysisResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/analysis/latest?time_range=${timeRange}`, {
+      headers: this.getHeaders(),
+    });
+
+    return this.handleResponse<AnalysisResponse>(response);
+  }
+
+  async exportAnalysisReport(request: ExportRequest): Promise<ExportResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/analysis/export`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request),
+    });
+
+    return this.handleResponse<ExportResponse>(response);
+  }
+
+  async getAnalysisHistory(): Promise<AnalysisHistoryResponse> {
+    const response = await fetch(`${this.baseUrl}/api/v1/analysis/history`, {
+      headers: this.getHeaders(),
+    });
+
+    return this.handleResponse<AnalysisHistoryResponse>(response);
   }
 }
 

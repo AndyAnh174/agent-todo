@@ -35,6 +35,9 @@ export default function Home() {
       const data = await res.json();
       if (data?.access_token) {
         localStorage.setItem("token", data.access_token);
+        // Update apiService token
+        const { apiService } = await import("@/services/api");
+        apiService.setToken(data.access_token);
         try {
           const existing = JSON.parse(localStorage.getItem("user") || "null");
           const newUser = { ...(existing || {}), email };

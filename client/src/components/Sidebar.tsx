@@ -15,6 +15,7 @@ import {
   TagIcon,
   FolderIcon,
   ChatBubbleLeftRightIcon,
+  ChartPieIcon,
 } from "@heroicons/react/24/outline";
 
 interface SidebarProps {
@@ -181,6 +182,16 @@ export default function Sidebar(props: SidebarProps = {}) {
         >
           <ChatBubbleLeftRightIcon className="w-5 h-5 text-purple-600" />
           <span>AI Chat</span>
+        </Link>
+
+        <Link
+          href="/analysis"
+          className={`flex items-center gap-3 px-2 py-2 rounded hover:bg-gray-200 ${
+            isActive("/analysis") ? "bg-gray-200 font-semibold" : ""
+          }`}
+        >
+          <ChartPieIcon className="w-5 h-5 text-orange-600" />
+          <span>Phân tích</span>
         </Link>
       </nav>
 
