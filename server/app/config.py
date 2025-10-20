@@ -40,7 +40,9 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    load_dotenv()
+    # Load .env from server directory
+    env_path = os.path.join(os.path.dirname(__file__), '..', '.env')
+    load_dotenv(env_path)
     return Settings(
         app_env=os.getenv("APP_ENV", "development"),
         app_port=int(os.getenv("APP_PORT", "8000")),
@@ -60,7 +62,7 @@ def load_settings() -> Settings:
         qdrant_host=os.getenv("QDRANT_HOST", "localhost"),
         qdrant_port=int(os.getenv("QDRANT_PORT", "6333")),
         qdrant_collection=os.getenv("QDRANT_COLLECTION", "todo_embeddings"),
-        gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
+        gemini_api_key=os.getenv("GEMINI_API_KEY", "AIzaSyD1IGu2kZ2DSISTCFuGaPiZ5Si8ePNtorU"),
     )
 
 

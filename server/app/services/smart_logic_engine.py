@@ -402,8 +402,10 @@ class SmartLogicEngine:
         patterns = [
             r'(\d{1,2})h(\d{2})?\s*(chiều|tối|pm)',  # 5h30 chiều, 5h chiều
             r'(\d{1,2})h(\d{2})?\s*(sáng|am)',  # 9h sáng, 9h30 sáng
+            r'(\d{1,2})h(\d{2})?\s*(trưa|trua)',  # 2h trưa, 12h trưa
             r'(\d{1,2}):(\d{2})\s*(chiều|tối|pm)',  # 17:00 chiều
             r'(\d{1,2}):(\d{2})\s*(sáng|am)',  # 9:30 sáng
+            r'(\d{1,2}):(\d{2})\s*(trưa|trua)',  # 12:00 trưa
             r'(\d{1,2})h(\d{2})?',  # 5h, 5h30
             r'(\d{1,2}):(\d{2})',  # 17:00, 9:30
         ]
@@ -438,6 +440,10 @@ class SmartLogicEngine:
                 elif 'sáng' in pattern or 'am' in pattern:
                     if hour == 12:
                         hour = 0
+                elif 'trưa' in pattern or 'trua' in pattern:
+                    # Trưa là giữa ngày, nếu < 12 thì cộng 12
+                    if hour < 12:
+                        hour += 12
                 
                 # Xác định ngày
                 if any(word in content for word in ["mai", "tomorrow", "ngay mai"]):

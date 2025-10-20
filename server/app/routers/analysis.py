@@ -9,7 +9,7 @@ from ..schemas.analysis import (
     AnalysisRequest, AnalysisResponse, ExportRequest, ExportResponse,
     AnalysisHistoryResponse, TimeRange
 )
-from ..services.analysis_service import get_analysis_service, GeminiAnalysisService
+from ..services.analysis_service import get_analysis_service, OllamaAnalysisService
 from ..models.todo import Todo
 
 logger = logging.getLogger(__name__)

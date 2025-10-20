@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Sidebar from "@/components/Sidebar";
+import AnalysisReport from "@/components/AnalysisReport";
 import { AnalysisResponse, TimeRange, AnalysisState } from "@/types/analysis";
 import { apiService } from "@/services/api";
 import { 
@@ -207,96 +208,7 @@ export default function AnalysisPage() {
             )}
 
             {analysisState.analysisData && (
-              <div className="space-y-6">
-                {/* Summary Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <ChartBarIcon className="h-8 w-8 text-blue-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-500">Tỷ lệ hoàn thành</p>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {analysisState.analysisData.time.completion_rate.toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <ArrowTrendingUpIcon className="h-8 w-8 text-green-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-500">Hiệu suất</p>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {analysisState.analysisData.productivity.efficiency_score.toFixed(0)}/100
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <ClockIcon className="h-8 w-8 text-orange-600" />
-                      </div>
-                      <div className="ml-4">
-                        <p className="text-sm font-medium text-gray-500">Tasks/ngày</p>
-                        <p className="text-2xl font-semibold text-gray-900">
-                          {analysisState.analysisData.productivity.tasks_per_day.toFixed(1)}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recommendations */}
-                {analysisState.analysisData.recommendations.length > 0 && (
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">Gợi ý cải thiện</h3>
-                    <div className="space-y-3">
-                      {analysisState.analysisData.recommendations.map((rec, index) => (
-                        <div key={index} className="flex items-start">
-                          <div className={`flex-shrink-0 w-2 h-2 rounded-full mt-2 ${
-                            rec.priority === 'high' ? 'bg-red-500' : 
-                            rec.priority === 'medium' ? 'bg-yellow-500' : 'bg-green-500'
-                          }`} />
-                          <div className="ml-3">
-                            <p className="text-sm font-medium text-gray-900">{rec.title}</p>
-                            <p className="text-sm text-gray-600">{rec.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Export buttons */}
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">Xuất báo cáo</h3>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => exportReport('json')}
-                      disabled={analysisState.isExporting}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:opacity-50"
-                    >
-                      <DocumentArrowDownIcon className="w-4 h-4" />
-                      {analysisState.isExporting ? 'Đang xuất...' : 'Xuất JSON'}
-                    </button>
-                    <button
-                      onClick={() => exportReport('pdf')}
-                      disabled={analysisState.isExporting}
-                      className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
-                    >
-                      <DocumentArrowDownIcon className="w-4 h-4" />
-                      {analysisState.isExporting ? 'Đang xuất...' : 'Xuất PDF'}
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <AnalysisReport data={analysisState.analysisData} />
             )}
 
             {!analysisState.loading && !analysisState.analysisData && !analysisState.error && (

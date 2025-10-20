@@ -3,6 +3,67 @@
 import { useState, useRef, useEffect } from "react";
 import SmartAnalysis from "./SmartAnalysis";
 
+// Hàm thông minh để trích xuất thời gian từ title
+const extractTimeFromTitle = (title: string): string | null => {
+  const titleLower = title.toLowerCase();
+  const today = new Date();
+  
+  // Các pattern thời gian phổ biến
+  const timePatterns = [
+    // Sáng
+    { pattern: /(\d{1,2})h\s*sáng/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) },
+    { pattern: /(\d{1,2}):(\d{2})\s*sáng/i, hour: (match: RegExpMatchArray) => parseInt(match[1]), minute: (match: RegExpMatchArray) => parseInt(match[2]) },
+    { pattern: /sáng\s*(\d{1,2})h/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) },
+    
+    // Chiều
+    { pattern: /(\d{1,2})h\s*chiều/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12 },
+    { pattern: /(\d{1,2}):(\d{2})\s*chiều/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12, minute: (match: RegExpMatchArray) => parseInt(match[2]) },
+    { pattern: /chiều\s*(\d{1,2})h/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12 },
+    
+    // Tối
+    { pattern: /(\d{1,2})h\s*tối/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12 },
+    { pattern: /(\d{1,2}):(\d{2})\s*tối/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12, minute: (match: RegExpMatchArray) => parseInt(match[2]) },
+    { pattern: /tối\s*(\d{1,2})h/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12 },
+    
+    // Đêm
+    { pattern: /(\d{1,2})h\s*đêm/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12 },
+    { pattern: /(\d{1,2}):(\d{2})\s*đêm/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12, minute: (match: RegExpMatchArray) => parseInt(match[2]) },
+    { pattern: /đêm\s*(\d{1,2})h/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) + 12 },
+    
+    // 24h format
+    { pattern: /(\d{1,2}):(\d{2})/i, hour: (match: RegExpMatchArray) => parseInt(match[1]), minute: (match: RegExpMatchArray) => parseInt(match[2]) },
+    { pattern: /(\d{1,2})h/i, hour: (match: RegExpMatchArray) => parseInt(match[1]) },
+  ];
+  
+  // Tìm pattern phù hợp
+  for (const timePattern of timePatterns) {
+    const match = titleLower.match(timePattern.pattern);
+    if (match) {
+      let hour = timePattern.hour(match);
+      const minute = timePattern.minute ? timePattern.minute(match) : 0;
+      
+      // Xử lý trường hợp đặc biệt
+      if (hour === 24) hour = 0;
+      if (hour > 23) hour = hour - 12; // Nếu > 23 thì trừ 12 (có thể là lỗi nhập)
+      
+      // Tạo thời gian với timezone local
+      const targetTime = new Date(today);
+      targetTime.setHours(hour, minute, 0, 0);
+      
+      // Nếu thời gian đã qua trong ngày, chuyển sang ngày mai
+      if (targetTime < today) {
+        targetTime.setDate(targetTime.getDate() + 1);
+      }
+      
+      // Chuyển đổi sang UTC để lưu vào database
+      // toISOString() tự động chuyển đổi sang UTC
+      return targetTime.toISOString();
+    }
+  }
+  
+  return null;
+};
+
 interface TaskInputProps {
   defaultIsImportant?: boolean;
 }
@@ -79,7 +140,13 @@ export default function TaskInput({ defaultIsImportant }: TaskInputProps) {
       if (analysis.suggested_deadline) {
         payload.due_time = analysis.suggested_deadline;
       } else {
-        payload.due_time = new Date().toISOString();
+        // Phân tích thời gian từ title
+        const extractedTime = extractTimeFromTitle(currentTitle);
+        if (extractedTime) {
+          payload.due_time = extractedTime;
+        } else {
+          payload.due_time = new Date().toISOString();
+        }
       }
 
       if (analysis.suggested_group) {

@@ -19,10 +19,13 @@ os.environ['REDIS_URL'] = 'redis://localhost:6379/0'
 os.environ['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 os.environ['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 os.environ['OLLAMA_HOST'] = 'http://222.253.80.30:11434'
+os.environ['OLLAMA_MODEL'] = 'qwen3:latest'
 os.environ['BGE3_API_URL'] = 'https://embed.andyanh.id.vn/embed'
 os.environ['QDRANT_HOST'] = 'localhost'
 os.environ['QDRANT_PORT'] = '6333'
 os.environ['QDRANT_COLLECTION'] = 'todo_embeddings'
+os.environ['JWT_SECRET'] = 'agent-todo-super-secret-key-2024'
+os.environ['JWT_EXPIRES_MIN'] = '60'
 
 def start_fastapi():
     """Start FastAPI server"""
@@ -83,7 +86,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
     
     # Start FastAPI in a separate thread
-    fastapi_thread = threading.Thread(target=start_fastapi, daemon=True)
+    fastapi_thread = threading.Thread(target=start_fastapi, daemon=False)
     fastapi_thread.start()
     
     # Wait a bit for FastAPI to start

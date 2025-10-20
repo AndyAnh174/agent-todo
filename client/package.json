@@ -14,12 +14,16 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@heroicons/react": "^2.0.18",
+    "chart.js": "^4.5.1",
+    "date-fns": "^2.30.0",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^3.0.3",
     "next": "15.5.6",
     "postcss": "^8.5.6",
     "react": "19.1.0",
+    "react-chartjs-2": "^5.3.0",
     "react-dom": "19.1.0",
-    "recharts": "^2.8.0",
-    "date-fns": "^2.30.0"
+    "recharts": "^2.15.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
